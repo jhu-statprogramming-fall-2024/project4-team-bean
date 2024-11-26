@@ -1,0 +1,79 @@
+---
+title: "Emily_ML"
+format: html
+editor: visual
+---
+
+```{r}
+library(readxl)
+library(dplyr)
+library(tidymodels)
+```
+
+```{r}
+bean = read_excel("DryBeanDataset/Dry_Bean_Dataset.xlsx")
+bean_split = initial_split(bean, prop = 0.8, strata = Class)
+bean_split
+```
+
+scaling is not necessary for random forest not sure if its necessary for stacked model
+
+-   could potentially use step_corr(all_predictors()), which removes variables that have large absolute correlations with other variables -\> this removes \~10 predictors
+
+```{r}
+## data pre-processing
+
+# specify recipe / apply to training data
+set.seed(9)
+bean_recipe <- training(bean_split) %>%
+  recipe(Class ~.)  %>%
+  prep()
+bean_recipe
+
+# apply recipe to testing data
+bean_testing <- bean_recipe %>%
+  bake(testing(bean_split)) 
+
+# load the prepared training data into a variable
+bean_training <- juice(bean_recipe)
+glimpse(bean_training)
+```
+
+## Random Forest
+
+```{r}
+# running random forest
+set.seed(9)
+bean_rf <- rand_forest(trees = 100, mode = "classification") %>%
+  set_engine("ranger") %>%
+  fit(Class ~ ., data = bean_training)
+bean_rf
+```
+
+```{r}
+## model validation
+
+# metrics
+predict(bean_rf, bean_testing, type = "prob") %>%
+  bind_cols(predict(bean_rf, bean_testing)) %>%
+  bind_cols(select(bean_testing, Class)) %>%
+  metrics(Class, .pred_BARBUNYA:.pred_SIRA, estimate = .pred_class)
+
+# add predicted class and prediction probabilities for each class to baked data set
+bean_probs <- predict(bean_rf, bean_testing, type = "prob") %>%
+  bind_cols(predict(bean_rf, bean_testing)) %>%
+  bind_cols(bean_testing) %>%
+  glimpse()
+
+# ROC curves
+bean_probs %>%
+  gain_curve(Class, .pred_BARBUNYA:.pred_SIRA) %>%
+  glimpse()
+
+bean_probs %>%
+  gain_curve(Class, .pred_BARBUNYA:.pred_SIRA) %>%
+  autoplot()
+
+```
+
+## Stacked Model (Ensemble)
