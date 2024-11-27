@@ -43,8 +43,8 @@ tree_workflow = workflow() %>%
 tree_fit = fit(tree_workflow, data_train)
 ```
 
-## PCA 
+## PCA
 
 ## ... Other Algorithms??
 
-## Stacking Methods 
+## Stacking Methods
