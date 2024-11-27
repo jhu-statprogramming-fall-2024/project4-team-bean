@@ -10,28 +10,29 @@ editor: visual
 library(tidyverse)
 library(tidymodels)
 library(readxl)
-
-data = read_xlsx("~/777-project-4/DryBeanDataset/Dry_Bean_Dataset.xlsx")
-
-data = data %>% 
-  mutate(
-    Class = as.factor(Class)
-  )
+library(beans)
 
 set.seed(250)
-data_val_split = initial_validation_split(data, prop = c(0.6, 0.2), strata = Class)
+data_split = initial_split(beans, prop = 0.8, strata = class)
 
-data_train = training(data_val_split)
-data_test = testing(data_val_split)
-data_val = validation(data_val_split)
+bean_training = training(data_split)
+bean_testing = testing(data_split)
 
-bean_recipe = recipe(Class ~ ., data = data_train) %>% 
+bean_recipe = recipe(class ~ ., data = bean_training) %>% 
   step_normalize()
+
+pca_recipe =
+  bean_recipe %>%
+  step_pca(all_predictors(), num_comp = tune())
 ```
 
 ## Classification Tree
 
 ```{r}
+library(rpart)
+library(rpart.plot)
+library(ggplot2)
+
 decision_tree_model = decision_tree() %>% 
   set_engine("rpart") %>% 
   set_mode("classification")
@@ -40,7 +41,64 @@ tree_workflow = workflow() %>%
   add_model(decision_tree_model)%>% 
   add_recipe(bean_recipe)
 
-tree_fit = fit(tree_workflow, data_train)
+tree_fit = fit(tree_workflow, bean_training)
+
+tree_fit %>% 
+  extract_fit_engine() %>% 
+  rpart.plot()
+
+bean_testing %>% 
+  select(class) %>% 
+  bind_cols(predict(tree_fit, bean_testing)) %>% 
+  conf_mat(truth = class, estimate = .pred_class)
+
+bean_testing %>% 
+  select(class) %>% 
+  bind_cols(predict(tree_fit, bean_testing, type = "prob")) %>% 
+  roc_curve(class, .pred_barbunya, .pred_bombay, .pred_cali, .pred_dermason, .pred_horoz, .pred_seker, .pred_sira) %>% 
+  autoplot()
+```
+
+```{r}
+library(kernlab)
+library(kknn)
+logistic_reg_model = multinom_reg(penalty = tune(), mixture = tune()) %>% 
+  set_engine("nnet") %>% 
+  set_mode("classification")
+
+svm_model = svm_rbf(cost = tune(), rbf_sigma = tune()) %>% 
+  set_engine("kernlab") %>% 
+  set_mode("classification")
+
+knn_model = nearest_neighbor(neighbors = tune(), dist_power = tune(), weight_func = tune()) %>% 
+  set_engine("kknn") %>% 
+  set_mode("classification")
+
+bean_workflow_set = 
+   workflow_set(
+      preproc = list(none = bean_recipe, pca = pca_recipe), 
+      models = list(SVM_radial = svm_model, KNN = knn_model, logistic = logistic_reg_model))
+```
+
+```{r}
+set.seed(250)
+bean_folds = vfold_cv(bean_training, strata = class, repeats = 5)
+
+grid_control =
+   control_grid(
+      save_pred = TRUE,
+      parallel_over = "everything",
+      save_workflow = TRUE
+   )
+
+grid_results =
+   bean_workflow_set %>%
+   workflow_map(
+      seed = 250,
+      resamples = bean_folds,
+      grid = 25,
+      control = grid_control
+   )
 ```
 
 ## PCA
