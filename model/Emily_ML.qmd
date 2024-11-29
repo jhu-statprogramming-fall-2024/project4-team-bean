@@ -8,15 +8,19 @@ editor: visual
 library(readxl)
 library(dplyr)
 library(tidymodels)
+library(beans)
+library(doParallel)
+library(bundle)
+library(dplyr)
+library(callr)
 ```
 
 ```{r}
-bean = read_excel("DryBeanDataset/Dry_Bean_Dataset.xlsx")
-bean_split = initial_split(bean, prop = 0.8, strata = Class)
-bean_split
+trees_split = initial_split(beans, prop = 0.8, strata = class)
+trees_train <- training(trees_split)
+trees_test <- testing(trees_split)
 ```
 
-scaling is not necessary for random forest not sure if its necessary for stacked model
 
 -   could potentially use step_corr(all_predictors()), which removes variables that have large absolute correlations with other variables -\> this removes \~10 predictors
 
@@ -24,56 +28,167 @@ scaling is not necessary for random forest not sure if its necessary for stacked
 ## data pre-processing
 
 # specify recipe / apply to training data
-set.seed(9)
-bean_recipe <- training(bean_split) %>%
-  recipe(Class ~.)  %>%
-  prep()
-bean_recipe
+tree_rec <- training(trees_split) %>%
+  recipe(class ~.)
+
+tree_prep = prep(tree_rec)
+juiced = juice(tree_prep)
 
 # apply recipe to testing data
-bean_testing <- bean_recipe %>%
-  bake(testing(bean_split)) 
+bean_testing <- tree_prep %>%
+  bake(testing(trees_split)) 
 
 # load the prepared training data into a variable
-bean_training <- juice(bean_recipe)
-glimpse(bean_training)
+bean_training <- juice(tree_prep)
 ```
 
 ## Random Forest
 
-```{r}
-# running random forest
-set.seed(9)
-bean_rf <- rand_forest(trees = 100, mode = "classification") %>%
-  set_engine("ranger") %>%
-  fit(Class ~ ., data = bean_training)
-bean_rf
-```
+Cross-validation
+```{r, eval = FALSE}
+# 10-fold CV with 10 grid points
+tune_spec <- rand_forest(mtry = tune(),
+                         trees = 1000,
+                         min_n = tune()) %>%
+  set_mode("classification") %>%
+  set_engine("ranger")
 
-```{r}
-## model validation
+tune_wf <- workflow() %>%
+  add_recipe(tree_rec) %>%
+  add_model(tune_spec)
 
-# metrics
-predict(bean_rf, bean_testing, type = "prob") %>%
-  bind_cols(predict(bean_rf, bean_testing)) %>%
-  bind_cols(select(bean_testing, Class)) %>%
-  metrics(Class, .pred_BARBUNYA:.pred_SIRA, estimate = .pred_class)
+set.seed(250)
+trees_folds <- vfold_cv(trees_train)
 
-# add predicted class and prediction probabilities for each class to baked data set
-bean_probs <- predict(bean_rf, bean_testing, type = "prob") %>%
+doParallel::registerDoParallel()
+
+set.seed(250)
+tune_res <- tune_grid(
+  tune_wf,
+  resamples = trees_folds,
+  grid = 10
+)
+
+tune_res
+
+# Evaluate AUC
+tune_res %>%
+  collect_metrics() %>%
+  filter(.metric == "roc_auc") %>%
+  select(mean, min_n, mtry) %>%
+  pivot_longer(min_n:mtry,
+    values_to = "value",
+    names_to = "parameter"
+  ) %>%
+  ggplot(aes(value, mean, color = parameter)) +
+  geom_point(show.legend = FALSE) +
+  facet_wrap(~parameter, scales = "free_x") +
+  labs(x = NULL, y = "AUC")
+
+# More specific grid based on initial evaluation
+rf_grid <- grid_regular(
+  mtry(range = c(1, 8)),
+  min_n(range = c(20, 30)),
+  levels = 5
+)
+
+rf_grid
+
+set.seed(250)
+regular_res <- tune_grid(
+  tune_wf,
+  resamples = trees_folds,
+  grid = rf_grid
+)
+
+regular_res
+
+regular_res %>%
+  collect_metrics() %>%
+  filter(.metric == "roc_auc") %>%
+  mutate(min_n = factor(min_n)) %>%
+  ggplot(aes(mtry, mean, color = min_n)) +
+  geom_line(alpha = 0.5, size = 1.5) +
+  geom_point() +
+  labs(y = "AUC")
+
+# Choose best model (mtry = 6, min_n = 22)
+best_auc <- select_best(regular_res)
+
+final_rf <- finalize_model(tune_spec,
+                           best_auc)
+
+final_wf <- workflow() %>%
+  add_recipe(tree_rec) %>%
+  add_model(final_rf)
+
+final_res <- final_wf %>%
+  last_fit(trees_split)
+
+final_rf_metrics = final_res %>%
+  collect_metrics()
+# accuracy    multiclass    0.920
+# roc_auc     hand_till     0.996
+# brier_class multiclass    0.0564
+
+# add predicted class and prediction probabilities for each class to testing data set
+bean_probs = final_res %>% extract_workflow() %>% 
+  predict(., bean_testing, , type = "prob") %>%
   bind_cols(predict(bean_rf, bean_testing)) %>%
   bind_cols(bean_testing) %>%
   glimpse()
 
 # ROC curves
 bean_probs %>%
-  gain_curve(Class, .pred_BARBUNYA:.pred_SIRA) %>%
+  gain_curve(class, .pred_barbunya:.pred_sira) %>%
   glimpse()
 
 bean_probs %>%
-  gain_curve(Class, .pred_BARBUNYA:.pred_SIRA) %>%
+  gain_curve(class, .pred_barbunya:.pred_sira) %>%
   autoplot()
-
 ```
+
+# Rebuilding the final model (CV was computationally intensive)
+```{r}
+final_rf_mod <- rand_forest(mtry = 6,
+                         trees = 1000,
+                         min_n = 22) %>%
+  set_mode("classification") %>%
+  set_engine("ranger") 
+
+final_rf_wf <- workflow() %>%
+  add_recipe(tree_rec) %>%
+  add_model(final_rf_mod)
+
+rf_mod = final_rf_wf %>%  
+  fit(bean_training)
+
+# saving the final RF model so we can use it in the Shiny App for predictions without re-running it
+
+temp_file <- tempfile()
+rf_bundle <- bundle(rf_mod)
+saveRDS(rf_bundle, file = temp_file)
+```
+
+# testing getting predictions from the R object
+```{r}
+sample_test = sample_n(bean_testing, 1)
+
+r(
+  function(temp_file, new_data) {
+    library(bundle)
+    library(workflows)
+    library(tidymodels)
+    model_bundle <- readRDS(file = temp_file)
+    model_object <- unbundle(model_bundle)
+    predict(model_object, new_data)
+  },
+  args = list(
+    temp_file = temp_file,
+    new_data = sample_test
+  )
+)
+```
+
 
 ## Stacked Model (Ensemble)
