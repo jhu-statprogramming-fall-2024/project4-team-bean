@@ -1,0 +1,225 @@
+---
+title: "BEANS EDA"
+code-overflow: wrap
+df-print: kable
+execute: 
+  echo: true
+  warning: false
+  message: false
+format: html
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r}
+library(jsonlite)
+library(rvest)
+library(httr2)
+library(tidyverse)
+library(finalfit)
+theme_set(theme_bw())
+```
+
+```{r}
+
+
+# Fetch the data
+df <- read.csv("https://ourworldindata.org/grapher/bean-production.csv?v=1&csvType=full&useColumnShortNames=true")
+
+# Fetch the metadata
+metadata <- fromJSON("https://ourworldindata.org/grapher/bean-production.metadata.json?v=1&csvType=full&useColumnShortNames=true")
+
+
+# Fetch the data
+world_population <- read.csv("https://ourworldindata.org/grapher/population-regions-with-projections.csv?v=1&csvType=full&useColumnShortNames=true")
+
+# Fetch the metadata
+population_metadata <- fromJSON("https://ourworldindata.org/grapher/population-regions-with-projections.metadata.json?v=1&csvType=full&useColumnShortNames=true")
+```
+
+```{r}
+beans <- df %>% 
+  rename("production"=  beans__dry__00000176__production__005510__tonnes)
+```
+
+```{r}
+missing_glimpse(beans)
+```
+
+```{r}
+continents <- beans %>% 
+  filter(Entity %in% c("Europe","Africa","North America","South America","Asia",
+                       "Oceania"))
+
+
+fao_subregions <- beans %>% 
+  filter(str_detect(Entity,"FAO"))
+
+
+income_groups <-  beans %>% 
+  filter(str_detect(Entity,"ncome")) %>% 
+  filter(!str_detect(Entity,"FAO"))
+
+usa <- beans %>% 
+  filter(Entity == "United States")
+
+
+development_groups<- beans %>% 
+  filter(str_detect(Entity,"Countries"))
+
+
+
+
+
+```
+
+```{r}
+beans_continents <-  continents %>% 
+  distinct(Entity) %>% 
+  pull(Entity)
+
+continents_pop <-  world_population %>% 
+  filter(Entity %in%  beans_continents,Year >=1961 & Year<=2022)
+
+continents <-  inner_join(continents,continents_pop, by =c("Entity","Code", "Year"),relationship = 'many-to-many')
+```
+
+```{r}
+
+countries <- beans %>% filter(Code !="",Entity != "World")
+
+pop_countries <- world_population %>% filter(Code !="",Entity != "World",
+                                             Year >=1961 &Year<=2022)
+
+ beans_countries <- countries %>% 
+  distinct(Entity) %>% 
+  pull(Entity)
+ 
+ pop_beans_countries <-  pop_countries %>% 
+   filter(Entity %in% beans_countries)
+ 
+ countries <-  inner_join(countries,pop_countries,by =c("Entity","Code", "Year"),relationship = 'many-to-many')
+```
+
+```{r}
+total_prod_year <-  continents %>% 
+  group_by(Year) %>% 
+  summarise(total_production = sum(production))
+
+
+total_prod_year %>% 
+  ggplot(aes(x = Year, y=total_production ))+
+  geom_line(color = "steelblue",size = 1)+
+  geom_point(color = "red")+
+  labs(title = "Global Beans Production Over the Years",
+    x = "Year",
+       y = "Production (Metric Tons)",           
+       caption = "Source:Ourworldindata.org"
+  )
+
+```
+
+```{r}
+
+continents %>% 
+  ggplot(aes(x = Year,y = production, colour = Entity))+
+  geom_line(size = 1)+
+  labs(title = "Trends in Beans Production Across Continents (Yearly Analysis)",
+       subtitle = "A visualization of annual production trends for major continents",
+       x = "Year",
+       y = "Production (Metric Tons)",           
+       color = "Continent"
+  )+
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 14, face = "bold"), 
+    plot.subtitle = element_text(hjust = 0.5, size = 12),            
+    legend.position = "right",                                    
+    axis.title = element_text(size = 12),
+    axis.text = element_text(size = 10)
+  )
+```
+
+```{r}
+continents %>% 
+  ggplot(aes(x = Year,y = Entity,fill = production))+
+  geom_tile()+
+  scale_fill_viridis_c(option = "viridis")+
+  labs(
+    title = "Beans Production Heatmap",
+    x = "Year",
+    y = "Region",
+    fill = "Production"
+  )+
+ theme( plot.title = element_text(hjust = 0.5, size = 14, face = "bold"))
+
+```
+
+```{r}
+continents %>% 
+  ggplot(aes(x = Year, y = production, fill = Entity))+
+  geom_area(alpha= 0.8)+
+  labs(
+    title = "Regional Contribution to Global Beans Production",
+    x = "Year",
+    y = "Production (Metric Tons)",
+    fill = "Region"
+  )+
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 14, face = "bold"),
+    axis.title = element_text(size = 12),
+    axis.text = element_text(size = 10)
+  )
+```
+
+```{r}
+countries %>%  
+  group_by(Entity) %>% 
+  summarise(Total_production = sum(production)) %>% 
+  slice_max(order_by =  Total_production, n= 5) %>%  
+  ggplot(aes(x = reorder(Entity,Total_production),y = Total_production,fill = Entity))+
+  geom_col(show.legend = FALSE)+
+  coord_flip()+
+  labs(
+    title = "Top 5 Beans Producing Countries",
+    x = "Country",
+    y = "Total Production (Metric Tons)"
+  )+
+  theme( plot.title = element_text(hjust = 0.5, size = 14, face = "bold")) 
+
+
+  
+```
+
+```{r}
+
+continents %>% 
+  mutate(PerCapitaProduction = production/population) %>% 
+  ggplot(aes(x = Year, y= PerCapitaProduction, size = population,
+             color = Entity))+
+  geom_point(alpha= 0.7)+
+  labs(
+    title = "Per Capita Beans Production Over Time",
+    x = "Year",
+    y = "Per Capita Production (Metric Tons)",
+    size = "Population",
+    color = "Region"
+  )+
+  theme(plot.title = element_text(hjust = 0.5, size = 14, face = "bold"))
+
+```
+
+```{r}
+continents %>% 
+  group_by(Entity) %>% 
+  arrange(Year) %>% 
+  mutate(GrowthRate = (production - lag(production)/lag(production)*100)) %>% 
+  ggplot(aes(x = Year, y= GrowthRate, color = Entity))+
+  geom_line(size = 1)+
+  labs(
+    title = "Beans Production Growth Rates by Region",
+    x = "Year",
+    y = "Growth Rate (%)",
+    color = "Region"
+  )+
+  theme(plot.title = element_text(hjust = 0.5, size = 14, face = "bold"))
+```
