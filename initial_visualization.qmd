@@ -1,5 +1,5 @@
 ---
-title: "BEANS EDA"
+title: "BEANS PRODUCTION VISUALIZATION"
 code-overflow: wrap
 df-print: kable
 execute: 
