@@ -13,151 +13,197 @@ library(doParallel)
 library(bundle)
 library(dplyr)
 library(callr)
+library(stacks)
 ```
+
+
+## Stacked Model (Ensemble of Random Forest and XG Boost)
+```{r}
+# set-up
+set.seed(250)
+bean_split = initial_split(beans, prop = 0.8, strata = class)
+bean_training <- training(bean_split)
+bean_testing <- testing(bean_split)
+
+folds <- rsample::vfold_cv(bean_training, v = 5)
+
+bean_rec <- training(bean_split) %>%
+  recipe(class ~.) %>% 
+  step_normalize(all_predictors())
+
+bean_wflow <- 
+  workflow() %>% 
+  add_recipe(bean_rec)
+```
+
+Random Forest CV
+```{r, eval = FALSE}
+# Set up parallel processing
+cl <- makeCluster(detectCores() - 1)
+registerDoParallel(cl)
+
+# Define control for grid search
+ctrl_grid <- control_grid(save_pred = TRUE, parallel_over = "resamples")
+
+# Specify the random forest model
+rand_forest_spec <- 
+  rand_forest(
+    mtry = tune(),         # Number of predictors to sample at each split
+    min_n = tune(),        # Minimum number of observations per node
+    trees = 500            # Fixed number of trees
+  ) %>%
+  set_mode("classification") %>%
+  set_engine("ranger")     # Use the "ranger" engine for speed
+
+# Define the workflow
+rand_forest_wflow <- 
+  bean_wflow %>%          # Base workflow (assumes `bean_wflow` is pre-defined)
+  add_model(rand_forest_spec)
+
+set.seed(5)
+# Tune hyperparameters using grid search
+rand_forest_res <- 
+  tune_grid(
+    object = rand_forest_wflow, 
+    resamples = folds,    # Cross-validation folds
+    grid = 5,            # Number of grid combinations
+    control = ctrl_grid   # Use parallel processing
+  )
+
+# Save and load results for reproducibility
+saveRDS(rand_forest_res, "rand_forest_res.rds")
+rand_forest_res <- readRDS("rand_forest_res.rds")
+
+rand_forest_res %>% select_best() # mtry = 7, min_n = 26
+
+# Stop parallel processing
+stopCluster(cl)
+```
+
+XGBoost CV
+```{r, eval = FALSE}
+cl <- makeCluster(detectCores() - 1)
+registerDoParallel(cl)
+
+ctrl_grid <- control_grid(save_pred = TRUE, parallel_over = "resamples")
+
+xgboost_spec <-
+  boost_tree(trees = 500, tree_depth = tune(), learn_rate = tune(), loss_reduction = tune()) %>%
+  set_mode("classification") %>%
+  set_engine("xgboost")
+
+xgboost_wflow <- 
+  bean_wflow %>%
+  add_model(xgboost_spec) %>%
+  update_recipe(bean_rec)
+
+set.seed(5)
+xgboost_res <-
+  tune_grid(
+    object = xgboost_wflow, 
+    resamples = folds, 
+    grid = 5,
+    control = ctrl_grid
+  )
+
+saveRDS(xgboost_res, "xgboost_res.rds")
+xgboost_res <- readRDS("xgboost_res.rds")
+
+stopCluster(cl)
+
+xgboost_res %>% select_best()
+# tree_depth = 2, learn_rate = 0.0869, loss_reduction = 0.0147
+```
+
+Ensemble Model for Random Forest and XGBoost (using only best models due to computational constraints)
+```{r}
+cl <- makeCluster(detectCores() - 1)
+registerDoParallel(cl)
+
+rf_model <- rand_forest(mtry = 7,
+                         trees = 500,
+                         min_n = 26) %>%
+  set_mode("classification") %>%
+  set_engine("ranger") 
+
+xgb_model <- boost_tree(tree_depth = 2,
+                         trees = 500,
+                         learn_rate = 0.0869,
+                      loss_reduction = 0.0147) %>%
+  set_mode("classification")%>%
+  set_engine("xgboost")
+
+untrained_recipe <- recipe(class ~., data = bean_training) %>% 
+  step_normalize(all_predictors())
+
+# Define the resampling strategy
+set.seed(123)
+df_folds <- vfold_cv(bean_training, v = 5)
+
+# Define the workflow for each model
+rf_workflow <- workflow() %>%
+  add_model(rf_model) %>%
+  add_recipe(untrained_recipe)
+
+xgb_workflow <- workflow() %>%
+  add_model(xgb_model) %>%
+  add_recipe(untrained_recipe)
+
+# Fit the models using resampling with control settings for stacking
+rf_res <- fit_resamples(rf_workflow, resamples = df_folds, control = control_resamples(save_pred = TRUE, save_workflow = TRUE))
+xgb_res <- fit_resamples(xgb_workflow, resamples = df_folds, control = control_resamples(save_pred = TRUE, save_workflow = TRUE))
+
+# Create a model stack
+model_stack <- stacks() %>%
+  add_candidates(rf_res) %>%
+  add_candidates(xgb_res) %>% 
+  blend_predictions(.) 
+
+# Fit the ensemble model
+final_model <- fit_members(model_stack)
+
+# Need to figure out similar extraction of model for Shiny App as below
+```
+
+
+
+## Extraction of model to a bundled object (using RF) for Shiny App prediction
 
 ```{r}
-trees_split = initial_split(beans, prop = 0.8, strata = class)
-trees_train <- training(trees_split)
-trees_test <- testing(trees_split)
+bean_split = initial_split(beans, prop = 0.8, strata = class)
+bean_train <- training(bean_split)
+bean_test <- testing(bean_split)
 ```
 
-
--   could potentially use step_corr(all_predictors()), which removes variables that have large absolute correlations with other variables -\> this removes \~10 predictors
 
 ```{r}
 ## data pre-processing
 
 # specify recipe / apply to training data
-tree_rec <- training(trees_split) %>%
-  recipe(class ~.)
+bean_rec <- training(bean_split) %>%
+  recipe(class ~.) %>% 
+  step_normalize(all_predictors())
 
-tree_prep = prep(tree_rec)
-juiced = juice(tree_prep)
+bean_prep = prep(bean_rec)
+juiced = juice(bean_prep)
 
 # apply recipe to testing data
-bean_testing <- tree_prep %>%
-  bake(testing(trees_split)) 
+bean_testing <- bean_prep %>%
+  bake(testing(bean_split)) 
 
 # load the prepared training data into a variable
-bean_training <- juice(tree_prep)
+bean_training <- juice(bean_prep)
 ```
 
-## Random Forest
-
-Cross-validation
-```{r, eval = FALSE}
-# 10-fold CV with 10 grid points
-tune_spec <- rand_forest(mtry = tune(),
-                         trees = 1000,
-                         min_n = tune()) %>%
-  set_mode("classification") %>%
-  set_engine("ranger")
-
-tune_wf <- workflow() %>%
-  add_recipe(tree_rec) %>%
-  add_model(tune_spec)
-
-set.seed(250)
-trees_folds <- vfold_cv(trees_train)
-
-doParallel::registerDoParallel()
-
-set.seed(250)
-tune_res <- tune_grid(
-  tune_wf,
-  resamples = trees_folds,
-  grid = 10
-)
-
-tune_res
-
-# Evaluate AUC
-tune_res %>%
-  collect_metrics() %>%
-  filter(.metric == "roc_auc") %>%
-  select(mean, min_n, mtry) %>%
-  pivot_longer(min_n:mtry,
-    values_to = "value",
-    names_to = "parameter"
-  ) %>%
-  ggplot(aes(value, mean, color = parameter)) +
-  geom_point(show.legend = FALSE) +
-  facet_wrap(~parameter, scales = "free_x") +
-  labs(x = NULL, y = "AUC")
-
-# More specific grid based on initial evaluation
-rf_grid <- grid_regular(
-  mtry(range = c(1, 8)),
-  min_n(range = c(20, 30)),
-  levels = 5
-)
-
-rf_grid
-
-set.seed(250)
-regular_res <- tune_grid(
-  tune_wf,
-  resamples = trees_folds,
-  grid = rf_grid
-)
-
-regular_res
-
-regular_res %>%
-  collect_metrics() %>%
-  filter(.metric == "roc_auc") %>%
-  mutate(min_n = factor(min_n)) %>%
-  ggplot(aes(mtry, mean, color = min_n)) +
-  geom_line(alpha = 0.5, size = 1.5) +
-  geom_point() +
-  labs(y = "AUC")
-
-# Choose best model (mtry = 6, min_n = 22)
-best_auc <- select_best(regular_res)
-
-final_rf <- finalize_model(tune_spec,
-                           best_auc)
-
-final_wf <- workflow() %>%
-  add_recipe(tree_rec) %>%
-  add_model(final_rf)
-
-final_res <- final_wf %>%
-  last_fit(trees_split)
-
-final_rf_metrics = final_res %>%
-  collect_metrics()
-# accuracy    multiclass    0.920
-# roc_auc     hand_till     0.996
-# brier_class multiclass    0.0564
-
-# add predicted class and prediction probabilities for each class to testing data set
-bean_probs = final_res %>% extract_workflow() %>% 
-  predict(., bean_testing, , type = "prob") %>%
-  bind_cols(predict(bean_rf, bean_testing)) %>%
-  bind_cols(bean_testing) %>%
-  glimpse()
-
-# ROC curves
-bean_probs %>%
-  gain_curve(class, .pred_barbunya:.pred_sira) %>%
-  glimpse()
-
-bean_probs %>%
-  gain_curve(class, .pred_barbunya:.pred_sira) %>%
-  autoplot()
-```
-
-# Rebuilding the final model (CV was computationally intensive)
 ```{r}
-final_rf_mod <- rand_forest(mtry = 6,
-                         trees = 1000,
+final_rf_mod <- rand_forest(mtry = 7,
+                         trees = 500,
                          min_n = 22) %>%
   set_mode("classification") %>%
   set_engine("ranger") 
 
 final_rf_wf <- workflow() %>%
-  add_recipe(tree_rec) %>%
+  add_recipe(bean_rec) %>%
   add_model(final_rf_mod)
 
 rf_mod = final_rf_wf %>%  
@@ -191,4 +237,4 @@ r(
 ```
 
 
-## Stacked Model (Ensemble)
+
