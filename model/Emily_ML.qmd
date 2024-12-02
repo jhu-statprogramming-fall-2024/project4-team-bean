@@ -16,8 +16,8 @@ library(callr)
 library(stacks)
 ```
 
-
 ## Stacked Model (Ensemble of Random Forest and XG Boost)
+
 ```{r}
 # set-up
 set.seed(250)
@@ -37,6 +37,7 @@ bean_wflow <-
 ```
 
 Random Forest CV
+
 ```{r, eval = FALSE}
 # Set up parallel processing
 cl <- makeCluster(detectCores() - 1)
@@ -81,6 +82,7 @@ stopCluster(cl)
 ```
 
 XGBoost CV
+
 ```{r, eval = FALSE}
 cl <- makeCluster(detectCores() - 1)
 registerDoParallel(cl)
@@ -116,6 +118,7 @@ xgboost_res %>% select_best()
 ```
 
 Ensemble Model for Random Forest and XGBoost (using only best models due to computational constraints)
+
 ```{r}
 cl <- makeCluster(detectCores() - 1)
 registerDoParallel(cl)
@@ -165,8 +168,6 @@ final_model <- fit_members(model_stack)
 # Need to figure out similar extraction of model for Shiny App as below
 ```
 
-
-
 ## Extraction of model to a bundled object (using RF) for Shiny App prediction
 
 ```{r}
@@ -174,7 +175,6 @@ bean_split = initial_split(beans, prop = 0.8, strata = class)
 bean_train <- training(bean_split)
 bean_test <- testing(bean_split)
 ```
-
 
 ```{r}
 ## data pre-processing
@@ -214,9 +214,11 @@ rf_mod = final_rf_wf %>%
 temp_file <- tempfile()
 rf_bundle <- bundle(rf_mod)
 saveRDS(rf_bundle, file = temp_file)
+readRDS(file = temp_file)
 ```
 
 # testing getting predictions from the R object
+
 ```{r}
 sample_test = sample_n(bean_testing, 1)
 
@@ -236,5 +238,9 @@ r(
 )
 ```
 
+```{r}
+rf_bundle <- bundle(rf_mod)
+saveRDS(rf_bundle, file = "predict_RF.rds")
 
+```
 
