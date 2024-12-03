@@ -16,6 +16,7 @@ library(dplyr)
 library(callr)
 library(stacks)
 library(tictoc)
+library(xgboost)
 
 # set-up
 set.seed(250)
@@ -31,10 +32,10 @@ load("RF_predict.RData")
 model_rf_object <- unbundle(rf_bundle)
 
 load("XG_predict.RData")
-model_xg_object <- unbundle(rf_bundle)
+model_xg_object <- unbundle(xg_bundle)
 
 load("RF_XG_predict.RData")
-model_ensemble_object <- unbundle(ensemble_bundle)
+model_ensemble_object <- unbundle(test)
 
 set.seed(as.numeric(Sys.time()) %% 1e6)
 sample_test = sample_n(bean_testing, 5)
@@ -43,7 +44,6 @@ predict(model_rf_object, sample_test)
 predict(model_xg_object, sample_test)
 predict(model_ensemble_object, sample_test)
 ```
-
 
 ______________________________
 
@@ -205,9 +205,8 @@ model_stack <- stacks() %>%
   add_candidates(xgb_res) %>% 
   blend_predictions() 
 
-# Fit the ensemble model
-ensemble_mod <- fit_members(model_stack)
 ```
+
 
 ## Single RF and XGBoost models
 ```{r}
@@ -231,16 +230,16 @@ xg_mod = final_xgb_wf %>%
   fit(bean_training)
 ```
 
-## Exporting to RData for future predictions
+## Code that exported models to RData for future predictions
 ```{r, eval = FALSE}
-rf_bundle <- bundle(rf_mod)
-save(rf_bundle, file = "RF_predict.RData")
+# rf_bundle <- bundle(rf_mod)
+# save(rf_bundle, file = "RF_predict.RData")
 
-xg_bundle <- bundle(xg_mod)
-save(xg_bundle, file = "XG_predict.RData")
+# xg_bundle <- bundle(xg_mod)
+# save(xg_bundle, file = "XG_predict.RData")
 
-ensemble_bundle <- bundle(ensemble_mod)
-save(ensemble_bundle, file = "RF_XG_predict.RData")
+# test = model_stack %>% butcher() %>% bundle()
+# save(test, file = "RF_XG_predict.RData")
 ```
 
 
