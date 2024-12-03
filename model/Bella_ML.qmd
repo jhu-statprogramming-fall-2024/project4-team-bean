@@ -70,19 +70,19 @@ svm_model = svm_rbf(cost = tune(), rbf_sigma = tune()) %>%
   set_engine("kernlab") %>% 
   set_mode("classification")
 
-knn_model = nearest_neighbor(neighbors = tune(), dist_power = tune(), weight_func = tune()) %>% 
+knn_model = nearest_neighbor(neighbors = tune(), dist_power = tune(), weight_func = tune()) %>%
   set_engine("kknn") %>% 
   set_mode("classification")
-
-bean_workflow_set = 
-   workflow_set(
-      preproc = list(none = bean_recipe, pca = pca_recipe), 
-      models = list(SVM_radial = svm_model, KNN = knn_model, logistic = logistic_reg_model))
 ```
 
 ```{r}
 set.seed(250)
 bean_folds = vfold_cv(bean_training, strata = class, repeats = 5)
+
+bean_workflow_set_logistic = 
+   workflow_set(
+      preproc = list(none = bean_recipe, pca = pca_recipe), 
+      models = list(logistic = logistic_reg_model))
 
 grid_control =
    control_grid(
@@ -91,8 +91,43 @@ grid_control =
       save_workflow = TRUE
    )
 
-grid_results =
-   bean_workflow_set %>%
+grid_results_logistic =
+   bean_workflow_set_logistic %>%
+   workflow_map(
+      seed = 250,
+      resamples = bean_folds,
+      grid = 9,
+      control = grid_control
+   )
+```
+
+```{r}
+set.seed(250)
+
+bean_workflow_set_svm = 
+   workflow_set(
+      preproc = list(none = bean_recipe, pca = pca_recipe), 
+      models = list(SVM_radial = svm_model))
+
+grid_results_svm =
+   bean_workflow_set_svm %>%
+   workflow_map(
+      seed = 250,
+      resamples = bean_folds,
+      grid = 25,
+      control = grid_control
+   )
+```
+```{r}
+set.seed(250)
+
+bean_workflow_set_knn = 
+   workflow_set(
+      preproc = list(none = bean_recipe, pca = pca_recipe), 
+      models = list(KNN = knn_model))
+
+grid_results_knn =
+   bean_workflow_set_knn %>%
    workflow_map(
       seed = 250,
       resamples = bean_folds,
@@ -101,8 +136,4 @@ grid_results =
    )
 ```
 
-## PCA
 
-## ... Other Algorithms??
-
-## Stacking Methods
