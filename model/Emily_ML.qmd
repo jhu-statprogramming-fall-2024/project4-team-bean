@@ -4,6 +4,49 @@ format: html
 editor: visual
 ---
 
+All necessary code for dashboard in this chunk
+```{r}
+library(readxl)
+library(dplyr)
+library(tidymodels)
+library(beans)
+library(doParallel)
+library(bundle)
+library(dplyr)
+library(callr)
+library(stacks)
+library(tictoc)
+
+# set-up
+set.seed(250)
+bean_split = initial_split(beans, prop = 0.8, strata = class)
+bean_training <- training(bean_split)
+bean_testing <- testing(bean_split)
+
+bean_rec <- training(bean_split) %>%
+  recipe(class ~.) %>% 
+  step_normalize(all_predictors())
+
+load("RF_predict.RData")
+model_rf_object <- unbundle(rf_bundle)
+
+load("XG_predict.RData")
+model_xg_object <- unbundle(rf_bundle)
+
+load("RF_XG_predict.RData")
+model_ensemble_object <- unbundle(ensemble_bundle)
+
+set.seed(as.numeric(Sys.time()) %% 1e6)
+sample_test = sample_n(bean_testing, 5)
+sample_test
+predict(model_rf_object, sample_test)
+predict(model_xg_object, sample_test)
+predict(model_ensemble_object, sample_test)
+```
+
+
+______________________________
+
 ```{r}
 library(readxl)
 library(dplyr)
@@ -16,7 +59,7 @@ library(callr)
 library(stacks)
 ```
 
-## Stacked Model (Ensemble of Random Forest and XG Boost)
+## Random Forest, XG Boost, and Ensemble of Random Forest and XG Boost
 
 ```{r}
 # set-up
@@ -54,11 +97,11 @@ rand_forest_spec <-
     trees = 500            # Fixed number of trees
   ) %>%
   set_mode("classification") %>%
-  set_engine("ranger")     # Use the "ranger" engine for speed
+  set_engine("ranger") 
 
 # Define the workflow
 rand_forest_wflow <- 
-  bean_wflow %>%          # Base workflow (assumes `bean_wflow` is pre-defined)
+  bean_wflow %>%          
   add_model(rand_forest_spec)
 
 set.seed(5)
@@ -123,13 +166,13 @@ Ensemble Model for Random Forest and XGBoost (using only best models due to comp
 cl <- makeCluster(detectCores() - 1)
 registerDoParallel(cl)
 
-rf_model <- rand_forest(mtry = 7,
+final_rf_mod <- rand_forest(mtry = 7,
                          trees = 500,
                          min_n = 26) %>%
   set_mode("classification") %>%
   set_engine("ranger") 
 
-xgb_model <- boost_tree(tree_depth = 2,
+final_xgb_model <- boost_tree(tree_depth = 2,
                          trees = 500,
                          learn_rate = 0.0869,
                       loss_reduction = 0.0147) %>%
@@ -145,11 +188,11 @@ df_folds <- vfold_cv(bean_training, v = 5)
 
 # Define the workflow for each model
 rf_workflow <- workflow() %>%
-  add_model(rf_model) %>%
+  add_model(final_rf_mod) %>%
   add_recipe(untrained_recipe)
 
 xgb_workflow <- workflow() %>%
-  add_model(xgb_model) %>%
+  add_model(final_xgb_model) %>%
   add_recipe(untrained_recipe)
 
 # Fit the models using resampling with control settings for stacking
@@ -160,47 +203,18 @@ xgb_res <- fit_resamples(xgb_workflow, resamples = df_folds, control = control_r
 model_stack <- stacks() %>%
   add_candidates(rf_res) %>%
   add_candidates(xgb_res) %>% 
-  blend_predictions(.) 
+  blend_predictions() 
 
 # Fit the ensemble model
-final_model <- fit_members(model_stack)
-
-# Need to figure out similar extraction of model for Shiny App as below
+ensemble_mod <- fit_members(model_stack)
 ```
 
-## Extraction of model to a bundled object (using RF) for Shiny App prediction
-
+## Single RF and XGBoost models
 ```{r}
-bean_split = initial_split(beans, prop = 0.8, strata = class)
-bean_train <- training(bean_split)
-bean_test <- testing(bean_split)
-```
-
-```{r}
-## data pre-processing
-
 # specify recipe / apply to training data
 bean_rec <- training(bean_split) %>%
   recipe(class ~.) %>% 
   step_normalize(all_predictors())
-
-bean_prep = prep(bean_rec)
-juiced = juice(bean_prep)
-
-# apply recipe to testing data
-bean_testing <- bean_prep %>%
-  bake(testing(bean_split)) 
-
-# load the prepared training data into a variable
-bean_training <- juice(bean_prep)
-```
-
-```{r}
-final_rf_mod <- rand_forest(mtry = 7,
-                         trees = 500,
-                         min_n = 22) %>%
-  set_mode("classification") %>%
-  set_engine("ranger") 
 
 final_rf_wf <- workflow() %>%
   add_recipe(bean_rec) %>%
@@ -209,38 +223,24 @@ final_rf_wf <- workflow() %>%
 rf_mod = final_rf_wf %>%  
   fit(bean_training)
 
-# saving the final RF model so we can use it in the Shiny App for predictions without re-running it
+final_xgb_wf <- workflow() %>%
+  add_recipe(bean_rec) %>%
+  add_model(final_xgb_model)
 
-temp_file <- tempfile()
+xg_mod = final_xgb_wf %>%  
+  fit(bean_training)
+```
+
+## Exporting to RData for future predictions
+```{r, eval = FALSE}
 rf_bundle <- bundle(rf_mod)
-saveRDS(rf_bundle, file = temp_file)
-readRDS(file = temp_file)
+save(rf_bundle, file = "RF_predict.RData")
+
+xg_bundle <- bundle(xg_mod)
+save(xg_bundle, file = "XG_predict.RData")
+
+ensemble_bundle <- bundle(ensemble_mod)
+save(ensemble_bundle, file = "RF_XG_predict.RData")
 ```
 
-# testing getting predictions from the R object
-
-```{r}
-sample_test = sample_n(bean_testing, 1)
-
-r(
-  function(temp_file, new_data) {
-    library(bundle)
-    library(workflows)
-    library(tidymodels)
-    model_bundle <- readRDS(file = temp_file)
-    model_object <- unbundle(model_bundle)
-    predict(model_object, new_data)
-  },
-  args = list(
-    temp_file = temp_file,
-    new_data = sample_test
-  )
-)
-```
-
-```{r}
-rf_bundle <- bundle(rf_mod)
-saveRDS(rf_bundle, file = "predict_RF.rds")
-
-```
 
