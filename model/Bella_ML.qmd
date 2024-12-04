@@ -23,7 +23,7 @@ bean_recipe = recipe(class ~ ., data = bean_training) %>%
 
 pca_recipe =
   bean_recipe %>%
-  step_pca(all_predictors(), num_comp = tune())
+  step_pca(all_predictors())
 ```
 
 ## Classification Tree
@@ -74,6 +74,11 @@ bean_boot = bootstraps(bean_training, strata = class)
 
 set.seed(250)
 lasso_grid = tune_grid(lasso_workflow, resamples = bean_boot, grid = lambda_grid)
+
+lasso_grid %>% 
+  select_best()
+
+penalty_lasso = 0.00005179475
 ```
 
 ```{r}
@@ -83,6 +88,25 @@ lasso_workflow_pca = workflow() %>%
 
 set.seed(250)
 lasso_grid_pca = tune_grid(lasso_workflow_pca, resamples = bean_boot, grid = lambda_grid)
+
+lasso_grid_pca %>% 
+  select_best()
+
+penalty_lasso_pca = 0.0003393222
+```
+
+```{r}
+svm_model = multinom_reg(penalty = tune(), mixture = 1) %>%
+  set_engine("nnet") %>% 
+  set_mode("classification")
+
+lasso_workflow = workflow() %>% 
+  add_recipe(bean_recipe) %>% 
+  add_model(logistic_reg_model)
+
+set.seed(250)
+svm_grid = tune_grid(lasso_workflow, resamples = bean_boot, grid = lambda_grid)
+
 ```
 
 ```{r}
@@ -120,5 +144,3 @@ grid_results_logistic %>%
   extract_workflow_set_result("logistic") %>% 
   select_best()
 ```
-
-
