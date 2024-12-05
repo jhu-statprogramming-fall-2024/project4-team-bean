@@ -1,0 +1,22 @@
+project:
+  type: website
+
+website:
+  title: "Machine learning models for bean classification"
+  navbar:
+    left:
+      - href: index.qmd
+        text: About
+      - background.qmd
+      - ml_overview.qmd
+      - dashboard1.qmd
+      - dashboard2.qmd
+
+format:
+  html:
+    theme: cosmo
+    css: styles.css
+    toc: true
+
+editor: visual
+

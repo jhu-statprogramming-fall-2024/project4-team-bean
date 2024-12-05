@@ -1,0 +1,13 @@
+---
+title: "Background and data visualisations"
+format: html
+code-overflow: wrap
+df-print: kable
+execute: 
+  echo: true
+  warning: false
+  message: false
+editor_options: 
+  chunk_output_type: console
+---
+

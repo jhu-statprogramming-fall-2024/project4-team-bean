@@ -1,0 +1,102 @@
+---
+title: "Explore models interactively"
+format: html
+filters:
+  - shinylive
+---
+
+This is a test of a shiny dashboard yay
+
+```{shinylive-r}
+#| standalone: true
+rm(list = ls())
+library(readxl)
+library(dplyr)
+library(tidymodels)
+library(beans)
+library(doParallel)
+library(bundle)
+library(dplyr)
+library(callr)
+library(stacks)
+library(shiny)
+
+# Read data
+set.seed(250)
+bean_split = initial_split(beans, prop = 0.8, strata = class)
+bean_training <- training(bean_split)
+bean_testing <- testing(bean_split)
+
+rf.data.file.name <- "~/Desktop/Hopkins/Year 1/Data Science/Stephanie/project4-team-bean/RF_predict.RData"
+load(rf.data.file.name)
+
+set.seed(runif(890))
+sample_test <- sample_n(bean_testing, 2)
+
+model_object <- unbundle(rf_bundle)
+table(as.character(predict(model_object, bean_testing)[[1]]), as.character(bean_testing$class))
+
+
+# Define your Shiny UI here
+ui <- fluidPage(
+  
+  # App title 
+  titlePanel("An interactive dashboard for machine learning models for bean classification - TEAM BEAN"),
+  
+  navbarPage("",
+  
+    tabPanel(
+      "Background",
+    
+      sidebarLayout(
+        
+        # Sidebar panel for inputs ----
+        sidebarPanel(
+          
+          # Input: Selector for choosing outcome ----
+          selectInput(inputId = "outcome",
+                      label = "Choose an outcome:",
+                      choices = c("Diarrhea under 5s")),
+          
+          # Input: Selector for choosing input ----
+          selectInput(inputId = "input",
+                      label = "Choose a household sanitation variable:",
+                      choices = c("Improved water source", 
+                                  "Use of bottled water as drinking source",
+                                  "Improved sanitation facility", 
+                                  "Handwashing", 
+                                  "Open defectaton practice")),
+        ),
+        
+        mainPanel(
+          textOutput("outcome_title"),
+          verbatimTextOutput("outcome_summary"),
+          textOutput("input_title"),
+          verbatimTextOutput("input_summary"),
+          plotOutput("plot")
+          
+        )
+      )),
+    
+    tabPanel("Model Training"),
+    
+    tabPanel("Interactive Component"),
+    
+    tabPanel("Classify multiple observations"))
+)
+
+# Define your Shiny server logic here
+server <- function(input, output, session){
+  
+  # Return the requested dataset ----
+  datasetOutcome <- reactive({
+    switch(input$outcome,
+           "Diarrhea under 5s" = "diarrhea_under_5")
+  })
+  
+  
+}
+
+# Create and launch the Shiny app
+shinyApp(ui, server)
+```

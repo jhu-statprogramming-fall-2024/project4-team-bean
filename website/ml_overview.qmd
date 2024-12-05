@@ -1,0 +1,16 @@
+---
+title: "Models overview"
+format: html
+code-overflow: wrap
+df-print: kable
+execute: 
+  echo: true
+  warning: false
+  message: false
+editor_options: 
+  chunk_output_type: console
+---
+
+This page will contain some information about the process of where the beans data came from, how we fit the machine learning models, how their training performed, and what the final models we decided to use were. 
+
+
