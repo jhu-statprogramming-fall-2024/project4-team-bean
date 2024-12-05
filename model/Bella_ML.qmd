@@ -55,11 +55,12 @@ bean_testing %>%
 bean_testing %>% 
   select(class) %>% 
   bind_cols(predict(tree_fit, bean_testing, type = "prob")) %>% 
-  roc_curve(class, .pred_barbunya, .pred_bombay, .pred_cali, .pred_dermason, .pred_horoz, .pred_seker, .pred_sira) %>% 
+  roc_curve(class, .pred_barbunya, .pred_bombay, .pred_cali, .pred_dermason, .pred_horoz, .pred_seker, .pred_sira) %>%
   autoplot()
 ```
 
 ```{r}
+library(vip)
 logistic_reg_model = multinom_reg(penalty = tune(), mixture = 1) %>%
   set_engine("nnet") %>% 
   set_mode("classification")
@@ -82,6 +83,32 @@ penalty_lasso = 0.00005179475
 ```
 
 ```{r}
+highest_auc = lasso_grid %>%
+  select_best()
+
+final_lasso = finalize_workflow(
+  lasso_workflow %>% update_model(logistic_reg_model),
+  highest_auc
+)
+
+final_lasso_fit = fit(final_lasso, bean_testing)
+
+final_lasso_fit %>% 
+  pull_workflow_fit()
+
+bean_testing %>% 
+  select(class) %>% 
+  bind_cols(predict(final_lasso_fit, bean_testing)) %>% 
+  conf_mat(truth = class, estimate = .pred_class)
+
+bean_testing %>% 
+  select(class) %>% 
+  bind_cols(predict(final_lasso_fit, bean_testing, type = "prob")) %>% 
+  roc_curve(class, .pred_barbunya, .pred_bombay, .pred_cali, .pred_dermason, .pred_horoz, .pred_seker, .pred_sira) %>%
+  autoplot()
+```
+
+```{r}
 lasso_workflow_pca = workflow() %>% 
   add_recipe(pca_recipe) %>% 
   add_model(logistic_reg_model)
@@ -96,16 +123,45 @@ penalty_lasso_pca = 0.0003393222
 ```
 
 ```{r}
-svm_model = multinom_reg(penalty = tune(), mixture = 1) %>%
-  set_engine("nnet") %>% 
+highest_auc_pca = lasso_grid_pca %>%
+  select_best()
+
+final_lasso_pca = finalize_workflow(
+  lasso_workflow_pca %>% update_model(logistic_reg_model),
+  highest_auc_pca
+)
+
+final_lasso_fit_pca = fit(final_lasso_pca, bean_testing)
+
+final_lasso_fit_pca %>% 
+  pull_workflow_fit()
+
+bean_testing %>% 
+  select(class) %>% 
+  bind_cols(predict(final_lasso_fit_pca, bean_testing)) %>% 
+  conf_mat(truth = class, estimate = .pred_class)
+
+bean_testing %>% 
+  select(class) %>% 
+  bind_cols(predict(final_lasso_fit_pca, bean_testing, type = "prob")) %>% 
+  roc_curve(class, .pred_barbunya, .pred_bombay, .pred_cali, .pred_dermason, .pred_horoz, .pred_seker, .pred_sira) %>%
+  autoplot()
+```
+
+```{r}
+library(kernlab)
+svm_model = svm_rbf(cost =tune()) %>%
+  set_engine("kernlab") %>% 
   set_mode("classification")
 
-lasso_workflow = workflow() %>% 
+svm_workflow = workflow() %>% 
   add_recipe(bean_recipe) %>% 
-  add_model(logistic_reg_model)
+  add_model(svm_model)
+
+cost_grid = grid_regular(cost(),levels=10)
 
 set.seed(250)
-svm_grid = tune_grid(lasso_workflow, resamples = bean_boot, grid = lambda_grid)
+svm_grid = tune_grid(svm_workflow, resamples = bean_boot, grid = cost_grid)
 
 ```
 
