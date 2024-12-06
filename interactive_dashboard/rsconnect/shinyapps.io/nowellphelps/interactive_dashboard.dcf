@@ -1,0 +1,10 @@
+name: interactive_dashboard
+title:
+username: nowellphelps
+account: nowellphelps
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 13533370
+bundleId: 9469513
+url: https://nowellphelps.shinyapps.io/interactive_dashboard/
+version: 1

@@ -39,11 +39,6 @@ ul.task-list li input[type="checkbox"] {
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
 <link href="site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
-<meta name="shinylive:serviceworker_dir" content=".">
-<script src="site_libs/quarto-contrib/shinylive-0.9.1/shinylive/load-shinylive-sw.js" type="module"></script>
-<script src="site_libs/quarto-contrib/shinylive-0.9.1/shinylive/run-python-blocks.js" type="module"></script>
-<link href="site_libs/quarto-contrib/shinylive-0.9.1/shinylive/shinylive.css" rel="stylesheet">
-<link href="site_libs/quarto-contrib/shinylive-quarto-css/shinylive-quarto.css" rel="stylesheet">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -150,100 +145,7 @@ ul.task-list li input[type="checkbox"] {
 
 
 <p>This is a test of a shiny dashboard yay</p>
-<pre class="shinylive-r" data-engine="r"><code>#| '!! shinylive warning !!': |
-#|   shinylive does not work in self-contained HTML documents.
-#|   Please set `embed-resources: false` in your metadata.
-#| standalone: true
-rm(list = ls())
-library(readxl)
-library(dplyr)
-library(tidymodels)
-library(beans)
-library(doParallel)
-library(bundle)
-library(dplyr)
-library(callr)
-library(stacks)
-library(shiny)
-
-# Read data
-set.seed(250)
-bean_split = initial_split(beans, prop = 0.8, strata = class)
-bean_training &lt;- training(bean_split)
-bean_testing &lt;- testing(bean_split)
-
-rf.data.file.name &lt;- "~/Desktop/Hopkins/Year 1/Data Science/Stephanie/project4-team-bean/RF_predict.RData"
-load(rf.data.file.name)
-
-set.seed(runif(890))
-sample_test &lt;- sample_n(bean_testing, 2)
-
-model_object &lt;- unbundle(rf_bundle)
-table(as.character(predict(model_object, bean_testing)[[1]]), as.character(bean_testing$class))
-
-
-# Define your Shiny UI here
-ui &lt;- fluidPage(
-  
-  # App title 
-  titlePanel("An interactive dashboard for machine learning models for bean classification - TEAM BEAN"),
-  
-  navbarPage("",
-  
-    tabPanel(
-      "Background",
-    
-      sidebarLayout(
-        
-        # Sidebar panel for inputs ----
-        sidebarPanel(
-          
-          # Input: Selector for choosing outcome ----
-          selectInput(inputId = "outcome",
-                      label = "Choose an outcome:",
-                      choices = c("Diarrhea under 5s")),
-          
-          # Input: Selector for choosing input ----
-          selectInput(inputId = "input",
-                      label = "Choose a household sanitation variable:",
-                      choices = c("Improved water source", 
-                                  "Use of bottled water as drinking source",
-                                  "Improved sanitation facility", 
-                                  "Handwashing", 
-                                  "Open defectaton practice")),
-        ),
-        
-        mainPanel(
-          textOutput("outcome_title"),
-          verbatimTextOutput("outcome_summary"),
-          textOutput("input_title"),
-          verbatimTextOutput("input_summary"),
-          plotOutput("plot")
-          
-        )
-      )),
-    
-    tabPanel("Model Training"),
-    
-    tabPanel("Interactive Component"),
-    
-    tabPanel("Classify multiple observations"))
-)
-
-# Define your Shiny server logic here
-server &lt;- function(input, output, session){
-  
-  # Return the requested dataset ----
-  datasetOutcome &lt;- reactive({
-    switch(input$outcome,
-           "Diarrhea under 5s" = "diarrhea_under_5")
-  })
-  
-  
-}
-
-# Create and launch the Shiny app
-shinyApp(ui, server)</code></pre>
+<iframe width="780" height="500" src="https://nowellphelps.shinyapps.io/interactive_dashboard/" title="Webpage example"></iframe>
 
 
 
