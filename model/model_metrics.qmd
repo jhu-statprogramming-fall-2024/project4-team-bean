@@ -1,0 +1,345 @@
+---
+title: "Project 4 ML Metrics"
+format: html
+editor: visual
+---
+
+## Pre-Processing of Data
+
+```{r}
+#| label: "Data Loading and Splitting"
+library(tidyverse)
+library(tidymodels)
+library(beans)
+
+set.seed(250)
+data_split = initial_split(beans, prop = 0.8, strata = class)
+
+bean_training = training(data_split)
+bean_testing = testing(data_split)
+
+bean_recipe = recipe(class ~ ., data = bean_training) %>% 
+  step_normalize()
+
+pca_recipe =
+  bean_recipe %>%
+  step_pca(all_predictors())
+```
+
+## Classification Tree
+
+```{r}
+library(rpart)
+library(rpart.plot)
+library(ggplot2)
+
+decision_tree_model = decision_tree() %>% 
+  set_engine("rpart") %>% 
+  set_mode("classification")
+
+tree_workflow = workflow() %>% 
+  add_model(decision_tree_model)%>% 
+  add_recipe(bean_recipe)
+
+tree_fit = fit(tree_workflow, bean_training)
+
+tree_fit %>% 
+  extract_fit_engine() %>% 
+  rpart.plot()
+
+tree_accuracy = bean_testing %>% 
+  select(class) %>% 
+  bind_cols(predict(tree_fit, bean_testing))
+
+model_accuracy = tree_accuracy %>% 
+  rename(tree = .pred_class)
+
+tree_accuracy %>% 
+  conf_mat(truth = class, estimate = .pred_class)
+
+tree_auc = bean_testing %>% 
+  select(class) %>% 
+  bind_cols(predict(tree_fit, bean_testing, type = "prob")) %>% 
+  roc_curve(class, .pred_barbunya, .pred_bombay, .pred_cali, .pred_dermason, .pred_horoz, .pred_seker, .pred_sira) %>%
+  autoplot()
+```
+
+## Lasso
+
+```{r}
+final_lasso_model = multinom_reg(penalty = 0.00005179475, mixture = 1) %>%
+  set_engine("nnet") %>% 
+  set_mode("classification")
+
+final_lasso = workflow() %>% 
+  add_recipe(bean_recipe) %>% 
+  add_model(final_lasso_model)
+
+final_lasso_fit = fit(final_lasso, bean_testing)
+
+final_lasso_fit %>% 
+  extract_fit_parsnip()
+
+lasso_accuracy = bean_testing %>% 
+  select(class) %>% 
+  bind_cols(predict(final_lasso_fit, bean_testing))
+
+model_accuracy = model_accuracy %>% 
+  bind_cols(predict(final_lasso_fit, bean_testing)) %>% 
+  rename(lasso = .pred_class)
+
+lasso_accuracy %>% 
+  conf_mat(truth = class, estimate = .pred_class)
+
+lasso_auc = bean_testing %>% 
+  select(class) %>% 
+  bind_cols(predict(final_lasso_fit, bean_testing, type = "prob")) %>% 
+  roc_curve(class, .pred_barbunya, .pred_bombay, .pred_cali, .pred_dermason, .pred_horoz, .pred_seker, .pred_sira) %>%
+  autoplot()
+```
+
+## Lasso with PCA
+
+```{r}
+final_lasso_model_pca = multinom_reg(penalty = 0.0003393222, mixture = 1) %>%
+  set_engine("nnet") %>% 
+  set_mode("classification")
+
+final_lasso_pca = workflow() %>% 
+  add_recipe(pca_recipe) %>% 
+  add_model(final_lasso_model_pca)
+
+final_lasso_fit_pca = fit(final_lasso_pca, bean_testing)
+
+final_lasso_fit_pca %>% 
+  extract_fit_parsnip()
+
+lasso_accuracy_pca = bean_testing %>% 
+  select(class) %>% 
+  bind_cols(predict(final_lasso_fit_pca, bean_testing)) 
+
+model_accuracy = model_accuracy %>% 
+  bind_cols(predict(final_lasso_fit_pca, bean_testing)) %>% 
+  rename(lasso_pca = .pred_class)
+
+lasso_accuracy_pca %>% 
+  conf_mat(truth = class, estimate = .pred_class)
+
+lasso_pca_auc = bean_testing %>% 
+  select(class) %>% 
+  bind_cols(predict(final_lasso_fit_pca, bean_testing, type = "prob")) %>% 
+  roc_curve(class, .pred_barbunya, .pred_bombay, .pred_cali, .pred_dermason, .pred_horoz, .pred_seker, .pred_sira) %>%
+  autoplot()
+```
+
+## SVM
+
+```{r}
+final_svm_model = svm_rbf(cost = 0.03125) %>%
+  set_engine("kernlab") %>% 
+  set_mode("classification")
+
+final_svm = workflow() %>% 
+  add_recipe(bean_recipe) %>% 
+  add_model(final_svm_model)
+
+final_svm_fit = fit(final_svm, bean_testing)
+
+final_svm_fit %>% 
+  extract_fit_parsnip()
+
+svm_accuracy = bean_testing %>% 
+  select(class) %>% 
+  bind_cols(predict(final_svm_fit, bean_testing)) 
+
+model_accuracy = model_accuracy %>% 
+  bind_cols(predict(final_svm_fit, bean_testing)) %>% 
+  rename(svm = .pred_class)
+
+svm_accuracy %>% 
+  conf_mat(truth = class, estimate = .pred_class)
+
+svm_auc = bean_testing %>% 
+  select(class) %>% 
+  bind_cols(predict(final_svm_fit, bean_testing, type = "prob")) %>% 
+  roc_curve(class, .pred_barbunya, .pred_bombay, .pred_cali, .pred_dermason, .pred_horoz, .pred_seker, .pred_sira) %>%
+  autoplot()
+```
+
+## SVM with PCA
+
+```{r}
+final_svm_model_pca = svm_rbf(cost = 0.03125) %>%
+  set_engine("kernlab") %>% 
+  set_mode("classification")
+
+final_svm_pca = workflow() %>% 
+  add_recipe(pca_recipe) %>% 
+  add_model(final_svm_model_pca)
+
+final_svm_fit_pca = fit(final_svm_pca, bean_testing)
+
+final_svm_fit_pca %>% 
+  extract_fit_parsnip()
+
+svm_accuracy_pca = bean_testing %>% 
+  select(class) %>% 
+  bind_cols(predict(final_svm_fit_pca, bean_testing))
+
+model_accuracy = model_accuracy %>% 
+  bind_cols(predict(final_svm_fit_pca, bean_testing)) %>% 
+  rename(svm_pca = .pred_class)
+
+svm_accuracy_pca %>% 
+  conf_mat(truth = class, estimate = .pred_class)
+
+svm_pca_auc = bean_testing %>% 
+  select(class) %>% 
+  bind_cols(predict(final_svm_fit_pca, bean_testing, type = "prob")) %>% 
+  roc_curve(class, .pred_barbunya, .pred_bombay, .pred_cali, .pred_dermason, .pred_horoz, .pred_seker, .pred_sira) %>%
+  autoplot()
+```
+
+## Random Forest
+
+```{r}
+library(ranger)
+final_rand_forest_model = 
+  rand_forest(mtry = 7,min_n = 26,trees = 500) %>%
+  set_mode("classification") %>%
+  set_engine("ranger") 
+
+final_rand_forest = workflow() %>%  
+  add_recipe(bean_recipe) %>%          
+  add_model(final_rand_forest_model)
+
+rand_forest_fit = fit(final_rand_forest, bean_testing)
+
+rand_forest_fit %>% 
+  extract_fit_parsnip()
+
+rand_forest_accuracy = bean_testing %>% 
+  select(class) %>% 
+  bind_cols(predict(rand_forest_fit, bean_testing)) 
+
+model_accuracy = model_accuracy %>% 
+  bind_cols(predict(rand_forest_fit, bean_testing)) %>% 
+  rename(rand_forest = .pred_class)
+
+rand_forest_accuracy %>% 
+  conf_mat(truth = class, estimate = .pred_class)
+
+rand_forest_auc = bean_testing %>% 
+  select(class) %>% 
+  bind_cols(predict(rand_forest_fit, bean_testing, type = "prob")) %>% 
+  roc_curve(class, .pred_barbunya, .pred_bombay, .pred_cali, .pred_dermason, .pred_horoz, .pred_seker, .pred_sira) %>%
+  autoplot()
+```
+
+## Boost
+
+```{r}
+final_xgboost_model =
+  boost_tree(trees = 500, tree_depth = 2, learn_rate = 0.0869, loss_reduction = 0.0147) %>%
+  set_mode("classification") %>%
+  set_engine("xgboost")
+
+final_xgboost = workflow() %>%  
+  add_recipe(bean_recipe) %>%          
+  add_model(final_xgboost_model)
+
+xgboost_fit = fit(final_xgboost, bean_testing)
+
+xgboost_fit %>% 
+  extract_fit_parsnip()
+
+xgboost_accuracy = bean_testing %>% 
+  select(class) %>% 
+  bind_cols(predict(xgboost_fit, bean_testing)) 
+
+model_accuracy = model_accuracy %>% 
+  bind_cols(predict(xgboost_fit, bean_testing)) %>% 
+  rename(xgboost = .pred_class)
+
+xgboost_confusion = xgboost_accuracy %>% 
+  conf_mat(truth = class, estimate = .pred_class)
+
+xgboost_auc = bean_testing %>% 
+  select(class) %>% 
+  bind_cols(predict(xgboost_fit, bean_testing, type = "prob")) %>% 
+  roc_curve(class, .pred_barbunya, .pred_bombay, .pred_cali, .pred_dermason, .pred_horoz, .pred_seker, .pred_sira) %>%
+  autoplot()
+```
+
+## Model Comparison
+
+```{r}
+bean_names = c("barbunya", "bombay", "cali", "dermason", "horoz", "seker", "sira")
+
+tree_stats = c(sum(model_accuracy$class == "barbunya" & model_accuracy$tree == "barbunya")/sum(model_accuracy$class == "barbunya"),
+             sum(model_accuracy$class == "bombay" & model_accuracy$tree == "bombay")/sum(model_accuracy$class == "bombay"),
+             sum(model_accuracy$class == "cali" & model_accuracy$tree == "cali")/sum(model_accuracy$class == "cali"),
+             sum(model_accuracy$class == "dermason" & model_accuracy$tree == "dermson")/sum(model_accuracy$class == "dermason"),
+             sum(model_accuracy$class == "horoz" & model_accuracy$tree == "horoz")/sum(model_accuracy$class == "horoz"),
+             sum(model_accuracy$class == "seker" & model_accuracy$tree == "seker")/sum(model_accuracy$class == "seker"),
+             sum(model_accuracy$class == "sira" & model_accuracy$tree == "sira")/sum(model_accuracy$class == "sira")
+             )
+
+lasso_stats = c(sum(model_accuracy$class == "barbunya" & model_accuracy$lasso == "barbunya")/sum(model_accuracy$class == "barbunya"),
+             sum(model_accuracy$class == "bombay" & model_accuracy$lasso == "bombay")/sum(model_accuracy$class == "bombay"),
+             sum(model_accuracy$class == "cali" & model_accuracy$lasso == "cali")/sum(model_accuracy$class == "cali"),
+             sum(model_accuracy$class == "dermason" & model_accuracy$lasso == "dermson")/sum(model_accuracy$class == "dermason"),
+             sum(model_accuracy$class == "horoz" & model_accuracy$lasso == "horoz")/sum(model_accuracy$class == "horoz"),
+             sum(model_accuracy$class == "seker" & model_accuracy$lasso == "seker")/sum(model_accuracy$class == "seker"),
+             sum(model_accuracy$class == "sira" & model_accuracy$lasso == "sira")/sum(model_accuracy$class == "sira")
+             )
+lasso_pca_stats = c(sum(model_accuracy$class == "barbunya" & model_accuracy$lasso_pca == "barbunya")/sum(model_accuracy$class == "barbunya"),
+             sum(model_accuracy$class == "bombay" & model_accuracy$lasso_pca == "bombay")/sum(model_accuracy$class == "bombay"),
+             sum(model_accuracy$class == "cali" & model_accuracy$lasso_pca == "cali")/sum(model_accuracy$class == "cali"),
+             sum(model_accuracy$class == "dermason" & model_accuracy$lasso_pca == "dermson")/sum(model_accuracy$class == "dermason"),
+             sum(model_accuracy$class == "horoz" & model_accuracy$lasso_pca == "horoz")/sum(model_accuracy$class == "horoz"),
+             sum(model_accuracy$class == "seker" & model_accuracy$lasso_pca == "seker")/sum(model_accuracy$class == "seker"),
+             sum(model_accuracy$class == "sira" & model_accuracy$lasso_pca == "sira")/sum(model_accuracy$class == "sira")
+             )
+
+svm_stats = c(sum(model_accuracy$class == "barbunya" & model_accuracy$svm == "barbunya")/sum(model_accuracy$class == "barbunya"),
+             sum(model_accuracy$class == "bombay" & model_accuracy$svm == "bombay")/sum(model_accuracy$class == "bombay"),
+             sum(model_accuracy$class == "cali" & model_accuracy$svm == "cali")/sum(model_accuracy$class == "cali"),
+             sum(model_accuracy$class == "dermason" & model_accuracy$svm == "dermson")/sum(model_accuracy$class == "dermason"),
+             sum(model_accuracy$class == "horoz" & model_accuracy$svm == "horoz")/sum(model_accuracy$class == "horoz"),
+             sum(model_accuracy$class == "seker" & model_accuracy$svm == "seker")/sum(model_accuracy$class == "seker"),
+             sum(model_accuracy$class == "sira" & model_accuracy$svm == "sira")/sum(model_accuracy$class == "sira")
+             )
+
+svm_pca_stats = c(sum(model_accuracy$class == "barbunya" & model_accuracy$svm_pca == "barbunya")/sum(model_accuracy$class == "barbunya"),
+             sum(model_accuracy$class == "bombay" & model_accuracy$svm_pca == "bombay")/sum(model_accuracy$class == "bombay"),
+             sum(model_accuracy$class == "cali" & model_accuracy$svm_pca == "cali")/sum(model_accuracy$class == "cali"),
+             sum(model_accuracy$class == "dermason" & model_accuracy$svm_pca == "dermson")/sum(model_accuracy$class == "dermason"),
+             sum(model_accuracy$class == "horoz" & model_accuracy$svm_pca == "horoz")/sum(model_accuracy$class == "horoz"),
+             sum(model_accuracy$class == "seker" & model_accuracy$svm_pca == "seker")/sum(model_accuracy$class == "seker"),
+             sum(model_accuracy$class == "sira" & model_accuracy$svm_pca == "sira")/sum(model_accuracy$class == "sira")
+             )
+
+rand_forest_stats = c(sum(model_accuracy$class == "barbunya" & model_accuracy$rand_forest == "barbunya")/sum(model_accuracy$class == "barbunya"),
+             sum(model_accuracy$class == "bombay" & model_accuracy$rand_forest == "bombay")/sum(model_accuracy$class == "bombay"),
+             sum(model_accuracy$class == "cali" & model_accuracy$rand_forest == "cali")/sum(model_accuracy$class == "cali"),
+             sum(model_accuracy$class == "dermason" & model_accuracy$rand_forest == "dermson")/sum(model_accuracy$class == "dermason"),
+             sum(model_accuracy$class == "horoz" & model_accuracy$rand_forest == "horoz")/sum(model_accuracy$class == "horoz"),
+             sum(model_accuracy$class == "seker" & model_accuracy$rand_forest == "seker")/sum(model_accuracy$class == "seker"),
+             sum(model_accuracy$class == "sira" & model_accuracy$rand_forest == "sira")/sum(model_accuracy$class == "sira")
+             )
+
+xgboost_stats = c(sum(model_accuracy$class == "barbunya" & model_accuracy$xgboost == "barbunya")/sum(model_accuracy$class == "barbunya"),
+             sum(model_accuracy$class == "bombay" & model_accuracy$xgboost == "bombay")/sum(model_accuracy$class == "bombay"),
+             sum(model_accuracy$class == "cali" & model_accuracy$xgboost == "cali")/sum(model_accuracy$class == "cali"),
+             sum(model_accuracy$class == "dermason" & model_accuracy$xgboost == "dermson")/sum(model_accuracy$class == "dermason"),
+             sum(model_accuracy$class == "horoz" & model_accuracy$xgboost == "horoz")/sum(model_accuracy$class == "horoz"),
+             sum(model_accuracy$class == "seker" & model_accuracy$xgboost == "seker")/sum(model_accuracy$class == "seker"),
+             sum(model_accuracy$class == "sira" & model_accuracy$xgboost == "sira")/sum(model_accuracy$class == "sira")
+             )
+
+heat_map_table =  cbind(bean_names, tree_stats, lasso_stats, lasso_pca_stats, svm_stats, svm_pca_stats, rand_forest_stats, xgboost_stats)
+
+heat_map_table %>% 
+  ggplot(aes(x = bean_names, y = c(tree_stats, lasso_stats))) + geom_tile()
+```
