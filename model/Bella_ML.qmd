@@ -2,6 +2,8 @@
 title: "Project 4 ML"
 format: html
 editor: visual
+editor_options: 
+  chunk_output_type: console
 ---
 
 ## Pre-Processing of Data

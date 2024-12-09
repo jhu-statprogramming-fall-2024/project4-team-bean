@@ -2,6 +2,8 @@
 title: "Emily_ML"
 format: html
 editor: visual
+editor_options: 
+  chunk_output_type: console
 ---
 
 All necessary code for dashboard in this chunk
@@ -63,7 +65,11 @@ library(callr)
 library(stacks)
 ```
 
+<<<<<<< Updated upstream
 ## Random Forest, XG Boost, and Ensemble of Random Forest and XG Boost
+=======
+## Stacked Model (Ensemble of Random Forest and XG Boost)
+>>>>>>> Stashed changes
 
 ```{r}
 # set-up
@@ -211,9 +217,23 @@ model_stack <- stacks() %>%
 
 ```
 
+<<<<<<< Updated upstream
 
 ## Single RF and XGBoost models
 ```{r}
+=======
+## Extraction of model to a bundled object (using RF) for Shiny App prediction
+
+```{r}
+bean_split = initial_split(beans, prop = 0.8, strata = class)
+bean_train <- training(bean_split)
+bean_test <- testing(bean_split)
+```
+
+```{r}
+## data pre-processing
+
+>>>>>>> Stashed changes
 # specify recipe / apply to training data
 bean_rec <- training(bean_split) %>%
   recipe(class ~.) %>% 
@@ -234,6 +254,7 @@ xg_mod = final_xgb_wf %>%
   fit(bean_training)
 ```
 
+<<<<<<< Updated upstream
 ## Code that exported models to RData for future predictions
 ```{r, eval = FALSE}
 # rf_bundle <- bundle(rf_mod)
@@ -253,11 +274,16 @@ xg_mod = final_xgb_wf %>%
 ```
 
 ## Prepping Bella's final models for collective ensemble
+=======
+# testing getting predictions from the R object
+
+>>>>>>> Stashed changes
 ```{r}
 bean_rec <- training(bean_split) %>%
   recipe(class ~.) %>% 
   step_normalize(all_predictors())
 
+<<<<<<< Updated upstream
 final_lasso_mod = multinom_reg(penalty = 0.00005179475, mixture = 1) %>%
   set_engine("nnet") %>% 
   set_mode("classification")
@@ -327,3 +353,20 @@ model_stack_2 <- stacks() %>%
 ```
 
 
+=======
+r(
+  function(temp_file, new_data) {
+    library(bundle)
+    library(workflows)
+    library(tidymodels)
+    model_bundle <- readRDS(file = temp_file)
+    model_object <- unbundle(model_bundle)
+    predict(model_object, new_data)
+  },
+  args = list(
+    temp_file = temp_file,
+    new_data = sample_test
+  )
+)
+```
+>>>>>>> Stashed changes
