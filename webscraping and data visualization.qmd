@@ -17,6 +17,7 @@ library(tidyverse)
 library(jsonlite)
 library(httr2)
 library(dotenv)
+library(rvest)
 load_dot_env()
 theme_set(theme_bw())
 ```
@@ -76,7 +77,7 @@ beans_totprod <- beans %>%
 ```{r}
 beans_totprod %>% 
   ggplot(aes(x = year, y= total_production))+
-  geom_point(color = "navyblue")+
+  geom_point(color = "red")+
   geom_line(color = "steelblue",linewidth = 1)+
   labs(x = "Year",
        y = "Production (metric tons)",
@@ -102,9 +103,95 @@ beans_totprod %>%
   geom_line(color = "steelblue",linewidth= 1) +
   geom_point(color = "red") +
   labs(
-    title = "Yearly Growth in Beans Production",
+    title = " USA Yearly Growth in Beans Production",
     x = "Year",
     y = "Growth (%)"
   ) +
   theme(plot.title = element_text(hjust = 0.5,face = "bold",size = 16))
+```
+
+```{r}
+wiki_url <- "https://en.wikipedia.org/wiki/List_of_countries_by_soybean_production"
+webpage <- read_html(wiki_url)
+```
+
+```{r}
+webpage
+
+table_node <- webpage %>%
+  html_nodes(xpath = '//*[@id="mw-content-text"]/div[1]/table[1]')
+
+
+beans_table <- table_node %>%
+  html_table(fill = TRUE) %>%
+  .[[1]]
+
+
+beans_table <- beans_table %>%
+    mutate(across(where(is.character), str_trim))
+
+beans_table <-  beans_table %>% 
+  pivot_longer(cols = 2:8,
+               names_to = "Year",
+               values_to = "total_production") %>% 
+  mutate(total_production =as.numeric(str_remove_all(total_production, ",")),
+         Year = as.numeric(Year))
+
+write.csv(beans_table,"world_beans.csv",row.names = FALSE)   
+```
+
+```{r}
+total_prod_year <-  beans_table %>% 
+  group_by(Year) %>% 
+  summarise(total_production = sum(total_production)) %>% 
+  ungroup()
+
+
+total_prod_year %>% 
+  ggplot(aes(x = Year, y=total_production,fill = Year))+
+  geom_col()+
+  labs(title = "Global Beans Production Over the Years",
+    x = "Year",
+       y = "Production (Metric Tons)",           
+       caption = "Source:Ourworldindata.org"
+  )+
+  scale_fill_viridis_c(option = "viridis")+
+   theme( plot.title = element_text(hjust = 0.5, size = 14, face = "bold"),
+          axis.title = element_text(size = 12),
+    axis.text = element_text(size = 10))
+
+```
+
+```{r}
+beans_table %>%  
+  group_by(Country) %>% 
+  summarise(Total_production = sum(total_production)) %>% 
+  slice_max(order_by =  Total_production, n= 5) %>%  
+  ggplot(aes(x = reorder(Country,Total_production),y = Total_production,fill = Country))+
+  geom_col(show.legend = FALSE)+
+   scale_fill_viridis_d(option = "viridis")+
+  coord_flip()+
+  labs(
+    title = "Top 5 Beans Producing Countries",
+    x = "Country",
+    y = "Total Production (Metric Tons)"
+  )+
+ 
+  theme( plot.title = element_text(hjust = 0.5, size = 14, face = "bold")) 
+
+```
+
+```{r}
+beans_table %>% 
+  mutate(GrowthRate = (total_production - lag(total_production)/lag(total_production)*100)) %>% 
+  ggplot(aes(x = Year, y= GrowthRate,fill = Year))+
+  geom_col()+
+  labs(
+    title = "Beans Production Growth Rates by Year",
+    x = "Year",
+    y = "Growth Rate (%)",
+    color = "Region"
+  )+
+  scale_fill_viridis_c()+
+  theme(plot.title = element_text(hjust = 0.5, size = 14, face = "bold"))
 ```
