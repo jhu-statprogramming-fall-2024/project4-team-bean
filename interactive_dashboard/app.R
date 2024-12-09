@@ -7,6 +7,7 @@ library(rsconnect)
 library(tidyverse)
 library(ranger)
 library(stringr)
+library(cowplot)
 
 # Read data
 
@@ -71,12 +72,21 @@ ui <- fluidPage(
   # App title 
   titlePanel("Machine learning models for bean classification - TEAM BEAN"),
   
+    
+  
   navbarPage("",
              
              tabPanel("About", 
                       
                       mainPanel(
-                        "This interactive dashboard offers a look into "
+                        "
+This interactive dashboard offers users a chance to explore the behaviour of different machine learning models trained on the dry bean dataset, a popular dataset for machine learning model benchmarking and testing. The dataset can be accessed on the UCI machine learning repository [1].
+
+More details on bean classes, and the creation of the dataset, including how the features in the dataset were extracted from photographs of beans using machine imaging techniques, can be found in the paper [2].
+
+[1] https://www.archive.ics.uci.edu/dataset/602/dry+bean+dataset, last accessed 8 December 2024.
+
+[2] Koklu, Murat, and Ilker Ali Ozkan. 'Multiclass classification of dry beans using computer vision and machine learning techniques.' Computers and Electronics in Agriculture 174 (2020): 105507."
                       )
                       
              ),
@@ -222,7 +232,20 @@ ui <- fluidPage(
                         
                         mainPanel(
                           
-                          plotOutput("scatter_plot"),
+                          strong(textOutput("plot_title")),
+                          fluidRow(
+                            column(6, plotOutput(outputId = "beans_legend", width  = "400px",height = "400px")),
+                            column(6, plotOutput(outputId = "histogram_x", width  = "400px",height = "400px"))
+                          ),
+                          
+                          fluidRow(
+                            column(6, plotOutput(outputId = "histogram_y", width  = "400px",height = "400px")),
+                            column(6, plotOutput(outputId = "scatter_plot", width  = "400px",height = "400px"))
+                            
+                          ),
+                            
+                            
+                          strong("Model agreement and disagreement..."),
                           tableOutput("model_prediction")
                         )
                       ))),
@@ -278,6 +301,10 @@ server <- function(input, output, session){
     
   })
   
+  output$plot_title <- renderText({
+    str_to_sentence(paste0(get_var_longname(input$data_plot.y), " against ", get_var_longname(input$data_plot.x), ", by bean class"))
+    })
+  
   output$scatter_plot <- renderPlot({
     
     plot_data <- bean_training
@@ -293,14 +320,106 @@ server <- function(input, output, session){
     user_yval <- inputs$Value[which(inputs$Name == input$data_plot.y)]
     
     ggplot(plot_data, aes(x = xvar, y = yvar, colour = class)) +
-      geom_point() +
+      geom_point(alpha = 0.4) +
       theme_classic() +
       geom_point(inherit.aes = F, colour = "red", x = user_xval, y = user_yval, shape = 4, size = 6) +
-      labs(title = "User-supplied value in relation to training dataset", 
-           x = get_var_longname(input$data_plot.x), 
-           y = get_var_longname(input$data_plot.y))
+      labs(x = get_var_longname(input$data_plot.x), 
+           y = get_var_longname(input$data_plot.y)) +
+      theme(legend.position = "none")
     
   })
+  
+  output$histogram_x <- renderPlot({
+    
+    plot_data <- bean_training
+    
+    plot_data$xvar <- unlist(bean_training[,input$data_plot.x])
+    
+    plot_data$yvar <- unlist(bean_training[,input$data_plot.y])
+    
+    colnames(plot_data)[c(ncol(plot_data)-1, ncol(plot_data))] <- c("xvar", "yvar")
+    
+    inputs    <- sliderValues()
+    user_xval <- inputs$Value[which(inputs$Name == input$data_plot.x)]
+    user_yval <- inputs$Value[which(inputs$Name == input$data_plot.y)]
+    
+    ggplot(plot_data, aes(x = xvar, group = class, fill = class)) +
+      geom_density(linewidth = 0.5, colour = "white", alpha = 0.5) +
+      theme_classic() +
+      geom_vline(inherit.aes = F, xintercept = user_xval, colour = "red") +
+      labs(x = get_var_longname(input$data_plot.x),
+           y = "Count") +
+      theme(axis.text.y = element_blank(),
+            axis.ticks = element_blank(), 
+            axis.line.y = element_blank(), 
+            axis.text.x = element_blank(), 
+            axis.ticks.x = element_blank()) +
+      scale_y_continuous(expand = expansion(0)) +
+      theme(legend.position = "none")
+    
+  })
+  
+  output$histogram_y <- renderPlot({
+    
+    plot_data <- bean_training
+    
+    plot_data$xvar <- unlist(bean_training[,input$data_plot.x])
+    
+    plot_data$yvar <- unlist(bean_training[,input$data_plot.y])
+    
+    colnames(plot_data)[c(ncol(plot_data)-1, ncol(plot_data))] <- c("xvar", "yvar")
+    
+    inputs    <- sliderValues()
+    user_xval <- inputs$Value[which(inputs$Name == input$data_plot.x)]
+    user_yval <- inputs$Value[which(inputs$Name == input$data_plot.y)]
+    
+    ggplot(plot_data, aes(x = yvar, group = class, fill = class)) +
+      geom_density(linewidth = 0.5, colour = "white", alpha = 0.5) +
+      theme_classic() +
+      geom_vline(inherit.aes = F, xintercept = user_yval, colour = "red") +
+      labs(x = get_var_longname(input$data_plot.y),
+           y = "Count") + 
+      theme(axis.text.y = element_blank(),
+            axis.ticks = element_blank(), 
+            axis.line.x = element_blank(), 
+            axis.text.x = element_blank(), 
+            axis.ticks.x = element_blank()) +
+      coord_flip()  +
+      scale_y_reverse(expand = expansion(0)) +
+      scale_x_continuous(expand = expansion(0), position = "top") +
+      theme(legend.position = "none")
+    
+  })
+  
+  output$beans_legend <- renderPlot({
+    
+    plot_data <- bean_training
+    
+    plot_data$xvar <- unlist(bean_training[,input$data_plot.x])
+    
+    plot_data$yvar <- unlist(bean_training[,input$data_plot.y])
+    
+    colnames(plot_data)[c(ncol(plot_data)-1, ncol(plot_data))] <- c("xvar", "yvar")
+    
+    inputs    <- sliderValues()
+    user_xval <- inputs$Value[which(inputs$Name == input$data_plot.x)]
+    user_yval <- inputs$Value[which(inputs$Name == input$data_plot.y)]
+    
+    p <- ggplot(plot_data, aes(x = yvar, group = class, fill = class)) +
+      geom_density(linewidth = 0.5, colour = "white", alpha = 0.5) +
+      theme_classic() +
+      geom_vline(inherit.aes = F, xintercept = user_yval, colour = "red") +
+      labs(title = paste0("Marginal distribution of ",get_var_longname(input$data_plot.x), ", by bean class"), 
+           x = get_var_longname(input$data_plot.y),
+           y = "Count") +
+      coord_flip()
+    
+    legend <- get_legend(p)
+    
+    plot(legend)
+    
+  })
+  
   
   output$model_prediction <- renderTable({
 
