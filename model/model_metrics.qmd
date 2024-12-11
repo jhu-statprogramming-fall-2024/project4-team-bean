@@ -57,10 +57,16 @@ model_accuracy = tree_accuracy %>%
 tree_accuracy %>% 
   conf_mat(truth = class, estimate = .pred_class)
 
-tree_auc = bean_testing %>% 
+model_auc = bean_testing %>% 
+  select(class) %>% 
+  bind_cols(predict(tree_fit, bean_testing, type = "prob"))
+  
+colnames(model_auc)[2:8] = paste(colnames(model_auc)[2:8], "tree", sep = "_")
+
+bean_testing %>% 
   select(class) %>% 
   bind_cols(predict(tree_fit, bean_testing, type = "prob")) %>% 
-  roc_curve(class, .pred_barbunya, .pred_bombay, .pred_cali, .pred_dermason, .pred_horoz, .pred_seker, .pred_sira) %>%
+  roc_curve(class, .pred_barbunya_tree, .pred_bombay_tree, .pred_cali_tree, .pred_dermason_tree, .pred_horoz_tree, .pred_seker_tree, .pred_sira_tree) %>%
   autoplot()
 ```
 
@@ -93,8 +99,15 @@ lasso_accuracy %>%
 
 lasso_auc = bean_testing %>% 
   select(class) %>% 
-  bind_cols(predict(final_lasso_fit, bean_testing, type = "prob")) %>% 
-  roc_curve(class, .pred_barbunya, .pred_bombay, .pred_cali, .pred_dermason, .pred_horoz, .pred_seker, .pred_sira) %>%
+  bind_cols(predict(final_lasso_fit, bean_testing, type = "prob")) 
+
+colnames(lasso_auc)[2:8] = paste(colnames(lasso_auc)[2:8], "lasso", sep = "_")
+
+model_auc = model_auc %>% 
+  cbind(lasso_auc[2:8])
+
+lasso_auc %>% 
+  roc_curve(class, .pred_barbunya_lasso, .pred_bombay_lasso, .pred_cali_lasso, .pred_dermason_lasso, .pred_horoz_lasso, .pred_seker_lasso, .pred_sira_lasso) %>%
   autoplot()
 ```
 
@@ -127,8 +140,15 @@ lasso_accuracy_pca %>%
 
 lasso_pca_auc = bean_testing %>% 
   select(class) %>% 
-  bind_cols(predict(final_lasso_fit_pca, bean_testing, type = "prob")) %>% 
-  roc_curve(class, .pred_barbunya, .pred_bombay, .pred_cali, .pred_dermason, .pred_horoz, .pred_seker, .pred_sira) %>%
+  bind_cols(predict(final_lasso_fit_pca, bean_testing, type = "prob")) 
+
+colnames(lasso_pca_auc)[2:8] = paste(colnames(lasso_pca_auc)[2:8], "lasso_pca", sep = "_")
+
+model_auc = model_auc %>% 
+  cbind(lasso_pca_auc[2:8])
+
+lasso_pca_auc %>% 
+  roc_curve(class, .pred_barbunya_lasso_pca, .pred_bombay_lasso_pca, .pred_cali_lasso_pca, .pred_dermason_lasso_pca, .pred_horoz_lasso_pca, .pred_seker_lasso_pca, .pred_sira_lasso_pca) %>%
   autoplot()
 ```
 
@@ -161,8 +181,15 @@ svm_accuracy %>%
 
 svm_auc = bean_testing %>% 
   select(class) %>% 
-  bind_cols(predict(final_svm_fit, bean_testing, type = "prob")) %>% 
-  roc_curve(class, .pred_barbunya, .pred_bombay, .pred_cali, .pred_dermason, .pred_horoz, .pred_seker, .pred_sira) %>%
+  bind_cols(predict(final_svm_fit, bean_testing, type = "prob")) 
+
+colnames(svm_auc)[2:8] = paste(colnames(svm_auc)[2:8], "svm", sep = "_")
+
+model_auc = model_auc %>% 
+  cbind(svm_auc[2:8])
+
+svm_auc %>% 
+  roc_curve(class, .pred_barbunya_svm, .pred_bombay_svm, .pred_cali_svm, .pred_dermason_svm, .pred_horoz_svm, .pred_seker_svm, .pred_sira_svm) %>%
   autoplot()
 ```
 
@@ -195,8 +222,15 @@ svm_accuracy_pca %>%
 
 svm_pca_auc = bean_testing %>% 
   select(class) %>% 
-  bind_cols(predict(final_svm_fit_pca, bean_testing, type = "prob")) %>% 
-  roc_curve(class, .pred_barbunya, .pred_bombay, .pred_cali, .pred_dermason, .pred_horoz, .pred_seker, .pred_sira) %>%
+  bind_cols(predict(final_svm_fit_pca, bean_testing, type = "prob")) 
+
+colnames(svm_pca_auc)[2:8] = paste(colnames(svm_pca_auc)[2:8], "svm_pca", sep = "_")
+
+model_auc = model_auc %>% 
+  cbind(svm_pca_auc[2:8])
+
+svm_pca_auc %>% 
+  roc_curve(class, .pred_barbunya_svm_pca, .pred_bombay_svm_pca, .pred_cali_svm_pca, .pred_dermason_svm_pca, .pred_horoz_svm_pca, .pred_seker_svm_pca, .pred_sira_svm_pca) %>%
   autoplot()
 ```
 
@@ -231,8 +265,15 @@ rand_forest_accuracy %>%
 
 rand_forest_auc = bean_testing %>% 
   select(class) %>% 
-  bind_cols(predict(rand_forest_fit, bean_testing, type = "prob")) %>% 
-  roc_curve(class, .pred_barbunya, .pred_bombay, .pred_cali, .pred_dermason, .pred_horoz, .pred_seker, .pred_sira) %>%
+  bind_cols(predict(rand_forest_fit, bean_testing, type = "prob")) 
+
+colnames(rand_forest_auc)[2:8] = paste(colnames(rand_forest_auc)[2:8], "rand_forest", sep = "_")
+
+model_auc = model_auc %>% 
+  cbind(rand_forest_auc[2:8])
+
+rand_forest_auc %>% 
+  roc_curve(class, .pred_barbunya_rand_forest, .pred_bombay_rand_forest, .pred_cali_rand_forest, .pred_dermason_rand_forest, .pred_horoz_rand_forest, .pred_seker_rand_forest, .pred_sira_rand_forest) %>%
   autoplot()
 ```
 
@@ -266,8 +307,15 @@ xgboost_confusion = xgboost_accuracy %>%
 
 xgboost_auc = bean_testing %>% 
   select(class) %>% 
-  bind_cols(predict(xgboost_fit, bean_testing, type = "prob")) %>% 
-  roc_curve(class, .pred_barbunya, .pred_bombay, .pred_cali, .pred_dermason, .pred_horoz, .pred_seker, .pred_sira) %>%
+  bind_cols(predict(xgboost_fit, bean_testing, type = "prob")) 
+
+colnames(xgboost_auc)[2:8] = paste(colnames(xgboost_auc)[2:8], "xgboost", sep = "_")
+
+model_auc = model_auc %>% 
+  cbind(xgboost_auc[2:8])
+
+xgboost_auc %>% 
+  roc_curve(class, .pred_barbunya_xgboost, .pred_bombay_xgboost, .pred_cali_xgboost, .pred_dermason_xgboost, .pred_horoz_xgboost, .pred_seker_xgboost, .pred_sira_xgboost) %>%
   autoplot()
 ```
 
@@ -342,4 +390,14 @@ heat_map_table =  cbind(bean_names, tree_stats, lasso_stats, lasso_pca_stats, sv
 
 heat_map_table %>% 
   ggplot(aes(x = bean_names, y = c(tree_stats, lasso_stats))) + geom_tile()
+```
+
+## Combo AUC Curves
+
+```{r}
+model_auc %>% 
+  filter(class == "barbunya") %>% 
+  roc_curve(class, .pred_barbunya_tree) %>%
+  autoplot()
+
 ```
