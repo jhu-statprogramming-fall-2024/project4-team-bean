@@ -1,0 +1,274 @@
+"Country","Year","total_production"
+"Brazil",2022,120701031
+"Brazil",2021,134799179
+"Brazil",2020,121820949
+"Brazil",2019,114316829
+"Brazil",2018,117912450
+"Brazil",2017,114732101
+"Brazil",2016,96394820
+"United States",2022,116377000
+"United States",2021,121527780
+"United States",2020,114748940
+"United States",2019,96667090
+"United States",2018,120514490
+"United States",2017,120064970
+"United States",2016,116931500
+"Argentina",2022,43861066
+"Argentina",2021,46217911
+"Argentina",2020,48780407
+"Argentina",2019,55263891
+"Argentina",2018,37787927
+"Argentina",2017,54971626
+"Argentina",2016,58799258
+"China",2022,20280000
+"China",2021,16400000
+"China",2020,19600000
+"China",2019,18100000
+"China",2018,15967100
+"China",2017,15282500
+"China",2016,12788894
+"India",2022,12986720
+"India",2021,12610300
+"India",2020,11225850
+"India",2019,13267520
+"India",2018,10932970
+"India",2017,13158730
+"India",2016,13159000
+"Canada",2022,6543158
+"Canada",2021,6224029
+"Canada",2020,6358500
+"Canada",2019,6145000
+"Canada",2018,7416600
+"Canada",2017,7716600
+"Canada",2016,6596500
+"Russia",2022,6003153
+"Russia",2021,4759908
+"Russia",2020,4307593
+"Russia",2019,4359956
+"Russia",2018,4026850
+"Russia",2017,3621712
+"Russia",2016,3142693
+"Paraguay",2022,4532103
+"Paraguay",2021,10537080
+"Paraguay",2020,11024460
+"Paraguay",2019,8520350
+"Paraguay",2018,11045971
+"Paraguay",2017,10478000
+"Paraguay",2016,9163030
+"Bolivia",2022,3457144
+"Bolivia",2021,3318169
+"Bolivia",2020,2829356
+"Bolivia",2019,2990845
+"Bolivia",2018,2942131
+"Bolivia",2017,2671046
+"Bolivia",2016,3203992
+"Ukraine",2022,3443800
+"Ukraine",2021,3493200
+"Ukraine",2020,2797670
+"Ukraine",2019,3698710
+"Ukraine",2018,4460770
+"Ukraine",2017,3899370
+"Ukraine",2016,4276990
+"South Africa",2022,1148300
+"South Africa",2021,1897000
+"South Africa",2020,1245500
+"South Africa",2019,1170345
+"South Africa",2018,1540000
+"South Africa",2017,1316000
+"South Africa",2016,742000
+"Nigeria",2022,1060000
+"Nigeria",2021,1166050
+"Nigeria",2020,1262280
+"Nigeria",2019,8e+05
+"Nigeria",2018,660000
+"Nigeria",2017,993955
+"Nigeria",2016,936887
+"Italy",2022,943400
+"Italy",2021,923470
+"Italy",2020,1005630
+"Italy",2019,1042830
+"Italy",2018,1186350
+"Italy",2017,1019781
+"Italy",2016,1081340
+"Uruguay",2022,647830
+"Uruguay",2021,1707000
+"Uruguay",2020,1990000
+"Uruguay",2019,2828000
+"Uruguay",2018,1334000
+"Uruguay",2017,3212000
+"Uruguay",2016,2208000
+"Zambia",2022,475353
+"Zambia",2021,411115
+"Zambia",2020,296866
+"Zambia",2019,281389
+"Zambia",2018,302720
+"Zambia",2017,351416
+"Zambia",2016,267490
+"Serbia",2022,398556
+"Serbia",2021,540205
+"Serbia",2020,751578
+"Serbia",2019,700502
+"Serbia",2018,645607
+"Serbia",2017,461272
+"Serbia",2016,576446
+"France",2022,375820
+"France",2021,439350
+"France",2020,406810
+"France",2019,428530
+"France",2018,398480
+"France",2017,415202
+"France",2016,338955
+"Benin",2022,306198
+"Benin",2021,291279
+"Benin",2020,253954
+"Benin",2019,257000
+"Benin",2018,221977
+"Benin",2017,164761
+"Benin",2016,156901
+"Indonesia",2022,301000
+"Indonesia",2021,215000
+"Indonesia",2020,291000
+"Indonesia",2019,424000
+"Indonesia",2018,953571
+"Indonesia",2017,538729
+"Indonesia",2016,859653
+"Romania",2022,258530
+"Romania",2021,367740
+"Romania",2020,340820
+"Romania",2019,440120
+"Romania",2018,492680
+"Romania",2017,393495
+"Romania",2016,263380
+"Kazakhstan",2022,250385
+"Kazakhstan",2021,237845
+"Kazakhstan",2020,260639
+"Kazakhstan",2019,282185
+"Kazakhstan",2018,255437
+"Kazakhstan",2017,252319
+"Kazakhstan",2016,231168
+"Austria",2022,248420
+"Austria",2021,237830
+"Austria",2020,204860
+"Austria",2019,217780
+"Austria",2018,186490
+"Austria",2017,193416
+"Austria",2016,152599
+"Japan",2022,242800
+"Japan",2021,246500
+"Japan",2020,218900
+"Japan",2019,217800
+"Japan",2018,211300
+"Japan",2017,253000
+"Japan",2016,238000
+"Mexico",2022,241371
+"Mexico",2021,288203
+"Mexico",2020,246019
+"Mexico",2019,232680
+"Mexico",2018,324011
+"Mexico",2017,432927
+"Mexico",2016,509114
+"Togo",2022,236450
+"Togo",2021,207604
+"Togo",2020,154545
+"Togo",2019,124638
+"Togo",2018,92373
+"Togo",2017,60348
+"Togo",2016,41084
+"Malawi",2022,220000
+"Malawi",2021,264497
+"Malawi",2020,210000
+"Malawi",2019,180000
+"Malawi",2018,175475
+"Malawi",2017,208556
+"Malawi",2016,132417
+"Iran",2022,210000
+"Iran",2021,2e+05
+"Iran",2020,190000
+"Iran",2019,180000
+"Iran",2018,160000
+"Iran",2017,140000
+"Iran",2016,139325
+"Ghana",2022,2e+05
+"Ghana",2021,190000
+"Ghana",2020,182000
+"Ghana",2019,180000
+"Ghana",2018,176700
+"Ghana",2017,170490
+"Ghana",2016,143220
+"Croatia",2022,194770
+"Croatia",2021,227870
+"Croatia",2020,266010
+"Croatia",2019,244280
+"Croatia",2018,245190
+"Croatia",2017,207765
+"Croatia",2016,244075
+"Ethiopia",2022,190000
+"Ethiopia",2021,185522
+"Ethiopia",2020,208676
+"Ethiopia",2019,125623
+"Ethiopia",2018,149455
+"Ethiopia",2017,86468
+"Ethiopia",2016,81235
+"North Korea",2022,180000
+"North Korea",2021,190000
+"North Korea",2020,229892
+"North Korea",2019,263920
+"North Korea",2018,135280
+"North Korea",2017,223325
+"North Korea",2016,282000
+"Turkey",2022,155000
+"Turkey",2021,182000
+"Turkey",2020,155225
+"Turkey",2019,150000
+"Turkey",2018,140000
+"Turkey",2017,140000
+"Turkey",2016,165000
+"Burkina Faso",2022,198540
+"Burkina Faso",2021,106675
+"Burkina Faso",2020,98513
+"Burkina Faso",2019,51708
+"Burkina Faso",2018,31314
+"Burkina Faso",2017,18500
+"Burkina Faso",2016,25851
+"Colombia",2022,141987
+"Colombia",2021,122491
+"Colombia",2020,119412
+"Colombia",2019,114056
+"Colombia",2018,92231
+"Colombia",2017,80106
+"Colombia",2016,80548
+"Uganda",2022,140000
+"Uganda",2021,265870
+"Uganda",2020,160000
+"Uganda",2019,126000
+"Uganda",2018,107624
+"Uganda",2017,28097
+"Uganda",2016,25730
+"Hungary",2022,134470
+"Hungary",2021,156580
+"Hungary",2020,165760
+"Hungary",2019,169570
+"Hungary",2018,181240
+"Hungary",2017,179282
+"Hungary",2016,184725
+"Myanmar",2022,131223
+"Myanmar",2021,133664
+"Myanmar",2020,135132
+"Myanmar",2019,141939
+"Myanmar",2018,143717
+"Myanmar",2017,145465
+"Myanmar",2016,149185
+"South Korea",2022,129925
+"South Korea",2021,110781
+"South Korea",2020,80926
+"South Korea",2019,105340
+"South Korea",2018,89410
+"South Korea",2017,85644
+"South Korea",2016,75448
+"Germany",2022,120500
+"Germany",2021,106600
+"Germany",2020,90500
+"Germany",2019,84100
+"Germany",2018,58700
+"Germany",2017,66000
+"Germany",2016,43000
