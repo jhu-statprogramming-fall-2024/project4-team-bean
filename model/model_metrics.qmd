@@ -51,11 +51,11 @@ tree_accuracy = bean_testing %>%
   select(class) %>% 
   bind_cols(predict(tree_fit, bean_testing))
 
-model_accuracy = tree_accuracy %>% 
-  rename(tree = .pred_class)
-
 tree_accuracy %>% 
   conf_mat(truth = class, estimate = .pred_class)
+
+model_accuracy = tree_accuracy %>% 
+  rename(tree = .pred_class)
 
 model_auc = bean_testing %>% 
   select(class) %>% 
@@ -63,9 +63,7 @@ model_auc = bean_testing %>%
   
 colnames(model_auc)[2:8] = paste(colnames(model_auc)[2:8], "tree", sep = "_")
 
-bean_testing %>% 
-  select(class) %>% 
-  bind_cols(predict(tree_fit, bean_testing, type = "prob")) %>% 
+model_auc %>% 
   roc_curve(class, .pred_barbunya_tree, .pred_bombay_tree, .pred_cali_tree, .pred_dermason_tree, .pred_horoz_tree, .pred_seker_tree, .pred_sira_tree) %>%
   autoplot()
 ```
@@ -327,7 +325,7 @@ bean_names = c("barbunya", "bombay", "cali", "dermason", "horoz", "seker", "sira
 tree_stats = c(sum(model_accuracy$class == "barbunya" & model_accuracy$tree == "barbunya")/sum(model_accuracy$class == "barbunya"),
              sum(model_accuracy$class == "bombay" & model_accuracy$tree == "bombay")/sum(model_accuracy$class == "bombay"),
              sum(model_accuracy$class == "cali" & model_accuracy$tree == "cali")/sum(model_accuracy$class == "cali"),
-             sum(model_accuracy$class == "dermason" & model_accuracy$tree == "dermson")/sum(model_accuracy$class == "dermason"),
+             sum(model_accuracy$class == "dermason" & model_accuracy$tree == "dermason")/sum(model_accuracy$class == "dermason"),
              sum(model_accuracy$class == "horoz" & model_accuracy$tree == "horoz")/sum(model_accuracy$class == "horoz"),
              sum(model_accuracy$class == "seker" & model_accuracy$tree == "seker")/sum(model_accuracy$class == "seker"),
              sum(model_accuracy$class == "sira" & model_accuracy$tree == "sira")/sum(model_accuracy$class == "sira")
@@ -336,7 +334,7 @@ tree_stats = c(sum(model_accuracy$class == "barbunya" & model_accuracy$tree == "
 lasso_stats = c(sum(model_accuracy$class == "barbunya" & model_accuracy$lasso == "barbunya")/sum(model_accuracy$class == "barbunya"),
              sum(model_accuracy$class == "bombay" & model_accuracy$lasso == "bombay")/sum(model_accuracy$class == "bombay"),
              sum(model_accuracy$class == "cali" & model_accuracy$lasso == "cali")/sum(model_accuracy$class == "cali"),
-             sum(model_accuracy$class == "dermason" & model_accuracy$lasso == "dermson")/sum(model_accuracy$class == "dermason"),
+             sum(model_accuracy$class == "dermason" & model_accuracy$lasso == "dermason")/sum(model_accuracy$class == "dermason"),
              sum(model_accuracy$class == "horoz" & model_accuracy$lasso == "horoz")/sum(model_accuracy$class == "horoz"),
              sum(model_accuracy$class == "seker" & model_accuracy$lasso == "seker")/sum(model_accuracy$class == "seker"),
              sum(model_accuracy$class == "sira" & model_accuracy$lasso == "sira")/sum(model_accuracy$class == "sira")
@@ -344,7 +342,7 @@ lasso_stats = c(sum(model_accuracy$class == "barbunya" & model_accuracy$lasso ==
 lasso_pca_stats = c(sum(model_accuracy$class == "barbunya" & model_accuracy$lasso_pca == "barbunya")/sum(model_accuracy$class == "barbunya"),
              sum(model_accuracy$class == "bombay" & model_accuracy$lasso_pca == "bombay")/sum(model_accuracy$class == "bombay"),
              sum(model_accuracy$class == "cali" & model_accuracy$lasso_pca == "cali")/sum(model_accuracy$class == "cali"),
-             sum(model_accuracy$class == "dermason" & model_accuracy$lasso_pca == "dermson")/sum(model_accuracy$class == "dermason"),
+             sum(model_accuracy$class == "dermason" & model_accuracy$lasso_pca == "dermason")/sum(model_accuracy$class == "dermason"),
              sum(model_accuracy$class == "horoz" & model_accuracy$lasso_pca == "horoz")/sum(model_accuracy$class == "horoz"),
              sum(model_accuracy$class == "seker" & model_accuracy$lasso_pca == "seker")/sum(model_accuracy$class == "seker"),
              sum(model_accuracy$class == "sira" & model_accuracy$lasso_pca == "sira")/sum(model_accuracy$class == "sira")
@@ -353,7 +351,7 @@ lasso_pca_stats = c(sum(model_accuracy$class == "barbunya" & model_accuracy$lass
 svm_stats = c(sum(model_accuracy$class == "barbunya" & model_accuracy$svm == "barbunya")/sum(model_accuracy$class == "barbunya"),
              sum(model_accuracy$class == "bombay" & model_accuracy$svm == "bombay")/sum(model_accuracy$class == "bombay"),
              sum(model_accuracy$class == "cali" & model_accuracy$svm == "cali")/sum(model_accuracy$class == "cali"),
-             sum(model_accuracy$class == "dermason" & model_accuracy$svm == "dermson")/sum(model_accuracy$class == "dermason"),
+             sum(model_accuracy$class == "dermason" & model_accuracy$svm == "dermason")/sum(model_accuracy$class == "dermason"),
              sum(model_accuracy$class == "horoz" & model_accuracy$svm == "horoz")/sum(model_accuracy$class == "horoz"),
              sum(model_accuracy$class == "seker" & model_accuracy$svm == "seker")/sum(model_accuracy$class == "seker"),
              sum(model_accuracy$class == "sira" & model_accuracy$svm == "sira")/sum(model_accuracy$class == "sira")
@@ -362,7 +360,7 @@ svm_stats = c(sum(model_accuracy$class == "barbunya" & model_accuracy$svm == "ba
 svm_pca_stats = c(sum(model_accuracy$class == "barbunya" & model_accuracy$svm_pca == "barbunya")/sum(model_accuracy$class == "barbunya"),
              sum(model_accuracy$class == "bombay" & model_accuracy$svm_pca == "bombay")/sum(model_accuracy$class == "bombay"),
              sum(model_accuracy$class == "cali" & model_accuracy$svm_pca == "cali")/sum(model_accuracy$class == "cali"),
-             sum(model_accuracy$class == "dermason" & model_accuracy$svm_pca == "dermson")/sum(model_accuracy$class == "dermason"),
+             sum(model_accuracy$class == "dermason" & model_accuracy$svm_pca == "dermason")/sum(model_accuracy$class == "dermason"),
              sum(model_accuracy$class == "horoz" & model_accuracy$svm_pca == "horoz")/sum(model_accuracy$class == "horoz"),
              sum(model_accuracy$class == "seker" & model_accuracy$svm_pca == "seker")/sum(model_accuracy$class == "seker"),
              sum(model_accuracy$class == "sira" & model_accuracy$svm_pca == "sira")/sum(model_accuracy$class == "sira")
@@ -371,7 +369,7 @@ svm_pca_stats = c(sum(model_accuracy$class == "barbunya" & model_accuracy$svm_pc
 rand_forest_stats = c(sum(model_accuracy$class == "barbunya" & model_accuracy$rand_forest == "barbunya")/sum(model_accuracy$class == "barbunya"),
              sum(model_accuracy$class == "bombay" & model_accuracy$rand_forest == "bombay")/sum(model_accuracy$class == "bombay"),
              sum(model_accuracy$class == "cali" & model_accuracy$rand_forest == "cali")/sum(model_accuracy$class == "cali"),
-             sum(model_accuracy$class == "dermason" & model_accuracy$rand_forest == "dermson")/sum(model_accuracy$class == "dermason"),
+             sum(model_accuracy$class == "dermason" & model_accuracy$rand_forest == "dermason")/sum(model_accuracy$class == "dermason"),
              sum(model_accuracy$class == "horoz" & model_accuracy$rand_forest == "horoz")/sum(model_accuracy$class == "horoz"),
              sum(model_accuracy$class == "seker" & model_accuracy$rand_forest == "seker")/sum(model_accuracy$class == "seker"),
              sum(model_accuracy$class == "sira" & model_accuracy$rand_forest == "sira")/sum(model_accuracy$class == "sira")
@@ -380,16 +378,39 @@ rand_forest_stats = c(sum(model_accuracy$class == "barbunya" & model_accuracy$ra
 xgboost_stats = c(sum(model_accuracy$class == "barbunya" & model_accuracy$xgboost == "barbunya")/sum(model_accuracy$class == "barbunya"),
              sum(model_accuracy$class == "bombay" & model_accuracy$xgboost == "bombay")/sum(model_accuracy$class == "bombay"),
              sum(model_accuracy$class == "cali" & model_accuracy$xgboost == "cali")/sum(model_accuracy$class == "cali"),
-             sum(model_accuracy$class == "dermason" & model_accuracy$xgboost == "dermson")/sum(model_accuracy$class == "dermason"),
+             sum(model_accuracy$class == "dermason" & model_accuracy$xgboost == "dermason")/sum(model_accuracy$class == "dermason"),
              sum(model_accuracy$class == "horoz" & model_accuracy$xgboost == "horoz")/sum(model_accuracy$class == "horoz"),
              sum(model_accuracy$class == "seker" & model_accuracy$xgboost == "seker")/sum(model_accuracy$class == "seker"),
              sum(model_accuracy$class == "sira" & model_accuracy$xgboost == "sira")/sum(model_accuracy$class == "sira")
              )
 
-heat_map_table =  cbind(bean_names, tree_stats, lasso_stats, lasso_pca_stats, svm_stats, svm_pca_stats, rand_forest_stats, xgboost_stats)
+heat_map_table =  rbind(tree_stats, lasso_stats, lasso_pca_stats, svm_stats, svm_pca_stats, rand_forest_stats, xgboost_stats) %>%
+  as_tibble() 
 
-heat_map_table %>% 
-  ggplot(aes(x = bean_names, y = c(tree_stats, lasso_stats))) + geom_tile()
+colnames(heat_map_table) = c("Barbunya", "Bombay", "Cali", "Dermason", "Horoz", "Seker", "Sira")
+
+rownames(heat_map_table) = c("Classification Tree", "Lasso", "Lasso with PCA", "SVM", "SVM with PCA", "Random Forest","XGBoost")
+
+heat_map_table = heat_map_table %>% 
+  mutate(
+    Average = (258*Barbunya + 101*Bombay+334*Cali+713*Dermason+382*Horoz+409*Seker+527*Sira)/2724
+  )
+```
+
+
+```{r}
+library(formattable)
+
+formattable(heat_map_table, align =c("c","c","c","c", "c", "c", "c", "r"), list(
+  `Barbunya`= color_tile("light pink", "light blue"),
+  `Bombay`= color_tile("light pink", "light blue"),
+  `Cali`= color_tile("light pink", "light blue"),
+  `Dermason`= color_tile("light pink", "light blue"),
+  `Horoz`= color_tile("light pink", "light blue"),
+  `Seker`= color_tile("light pink", "light blue"),
+  `Sira`= color_tile("light pink", "light blue"),
+  `Average` = color_tile("light pink", "red")
+))
 ```
 
 ## Combo AUC Curves
