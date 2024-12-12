@@ -7,6 +7,7 @@ editor_options:
 ---
 
 All necessary code for dashboard in this chunk
+
 ```{r}
 library(readxl)
 library(dplyr)
@@ -46,9 +47,13 @@ model_Lasso_PCA_object <- unbundle(lasso_PCA_bundle)
 load("SVM_PCA_predict.RData")
 model_SVM_PCA_object <- unbundle(svm_PCA_bundle)
 
-# Ensemble model
-load("RF_XG_Lasso_LassoPCA_SvmPCA_predict.RData")
-ensemble_object_5 <- unbundle(ensemble_5_bundle)
+# UPDATED
+load("SVM_predict.RData") ### 
+model_SVM_object <- unbundle(svm_bundle) ###
+
+# Ensemble model (UPDATED)
+load("RF_XG_Lasso_LassoPCA_Svm_predict.RData") ###
+ensemble_object_5_2 <- unbundle(ensemble_object_5_2) ###
 
 set.seed(as.numeric(Sys.time()) %% 1e6)
 sample_test = sample_n(bean_testing, 5)
@@ -57,11 +62,12 @@ predict(model_rf_object, sample_test)
 predict(model_xg_object, sample_test)
 predict(model_Lasso_object, sample_test)
 predict(model_Lasso_PCA_object, sample_test)
-predict(model_SVM_PCA_object, sample_test)
-predict(ensemble_object_5, sample_test)
+predict(model_SVM_object, sample_test)
+predict(ensemble_object_5_2, sample_test)
 ```
 
 Intermediate ensemble models
+
 ```{r}
 load("RF_XG_predict.RData")
 model_ensemble_object <- unbundle(test)
@@ -75,7 +81,7 @@ predict(model_ensemble_object_3, sample_test)
 predict(ensemble_object_4, sample_test)
 ```
 
-______________________________
+------------------------------------------------------------------------
 
 ```{r}
 library(readxl)
@@ -88,16 +94,6 @@ library(dplyr)
 library(callr)
 library(stacks)
 
-<<<<<<< HEAD
-<<<<<<< Updated upstream
-## Random Forest, XG Boost, and Ensemble of Random Forest and XG Boost
-=======
-## Stacked Model (Ensemble of Random Forest and XG Boost)
->>>>>>> Stashed changes
-
-```{r}
-=======
->>>>>>> bc0a88caa0133f707ef8e9e050bab4b5fb920fed
 # set-up
 set.seed(250)
 bean_split = initial_split(beans, prop = 0.8, strata = class)
@@ -197,6 +193,7 @@ xgboost_res %>% select_best()
 ```
 
 ## Single models: RF and XGBoost
+
 ```{r}
 # specify recipe / apply to training data
 bean_rec <- training(bean_split) %>%
@@ -269,15 +266,9 @@ model_stack <- stacks() %>%
   add_candidates(xgb_res) %>% 
   blend_predictions() 
 
-<<<<<<< HEAD
 ```
 
-<<<<<<< Updated upstream
-
 ## Single RF and XGBoost models
-```{r}
-=======
-## Extraction of model to a bundled object (using RF) for Shiny App prediction
 
 ```{r}
 bean_split = initial_split(beans, prop = 0.8, strata = class)
@@ -288,7 +279,6 @@ bean_test <- testing(bean_split)
 ```{r}
 ## data pre-processing
 
->>>>>>> Stashed changes
 # specify recipe / apply to training data
 bean_rec <- training(bean_split) %>%
   recipe(class ~.) %>% 
@@ -309,8 +299,8 @@ xg_mod = final_xgb_wf %>%
   fit(bean_training)
 ```
 
-<<<<<<< Updated upstream
 ## Code that exported models to RData for future predictions
+
 ```{r, eval = FALSE}
 # rf_bundle <- bundle(rf_mod)
 # save(rf_bundle, file = "RF_predict.RData")
@@ -319,29 +309,20 @@ xg_mod = final_xgb_wf %>%
 # save(xg_bundle, file = "XG_predict.RData")
 
 # test = model_stack %>% butcher() %>% bundle()
-=======
+
 # test = model_stack %>% fit_members() %>% butcher() %>% bundle()
->>>>>>> bc0a88caa0133f707ef8e9e050bab4b5fb920fed
 # save(test, file = "RF_XG_predict.RData")
 ```
 
-
 ## Prepping Bella's final models for collective ensemble
-<<<<<<< HEAD
-=======
-# testing getting predictions from the R object
-
->>>>>>> Stashed changes
-=======
 
 ## Single model: Lasso (no PCA)
->>>>>>> bc0a88caa0133f707ef8e9e050bab4b5fb920fed
+
 ```{r}
 bean_rec <- training(bean_split) %>%
   recipe(class ~.) %>% 
   step_normalize(all_predictors())
 
-<<<<<<< Updated upstream
 final_lasso_mod = multinom_reg(penalty = 0.00005179475, mixture = 1) %>%
   set_engine("nnet") %>% 
   set_mode("classification")
@@ -358,6 +339,7 @@ lasso_mod = final_lasso_wf %>%
 ```
 
 ## Single model: Lasso with PCA
+
 ```{r}
 pca_recipe = bean_recipe %>% step_pca(all_predictors())
 
@@ -377,6 +359,25 @@ lasso_PCA_mod = final_lasso_PCA_wf %>%
 ```
 
 ## Single model: SVM with PCA
+
+```{r}
+final_svm_model = svm_rbf(cost = 0.03125) %>%
+  set_engine("kernlab") %>% 
+  set_mode("classification")
+
+final_svm_wf = workflow() %>% 
+  add_recipe(bean_rec) %>% 
+  add_model(final_svm_model)
+
+svm_mod = final_svm_wf %>%  
+  fit(bean_training)
+
+# svm_bundle <- bundle(svm_mod)
+# save(svm_bundle, file = "SVM_predict.RData")
+```
+
+## Single model: SVM with PCA
+
 ```{r}
 pca_recipe = bean_rec %>% step_pca(all_predictors())
 
@@ -395,8 +396,8 @@ svm_PCA_mod = final_svm_PCA_wf %>%
 # save(svm_PCA_bundle, file = "SVM_PCA_predict.RData")
 ```
 
-
 ## Collective Ensemble Model (Random Forest, XGBoost, Lasso, Lasso with PCA first, SVM with PCA first)
+
 ```{r}
 cl <- makeCluster(detectCores() - 1)
 registerDoParallel(cl)
@@ -422,7 +423,7 @@ final_lasso_PCA_model = multinom_reg(penalty = 0.0003393222, mixture = 1) %>%
   set_engine("nnet") %>% 
   set_mode("classification")
 
-final_svm_model_pca = svm_rbf(cost = 0.03125) %>%
+final_svm_model = svm_rbf(cost = 0.03125) %>%
   set_engine("kernlab") %>% 
   set_mode("classification")
 
@@ -453,16 +454,16 @@ lasso_PCA_workflow <- workflow() %>%
   add_model(final_lasso_PCA_model) %>%
   add_recipe(untrained_recipe_PCA)
 
-SVM_PCA_workflow <- workflow() %>%
-  add_model(final_svm_model_pca) %>%
-  add_recipe(untrained_recipe_PCA)
+SVM_workflow <- workflow() %>%
+  add_model(final_svm_model) %>%
+  add_recipe(untrained_recipe)
 
 # Fit the models using resampling with control settings for stacking
 rf_res <- fit_resamples(rf_workflow, resamples = df_folds, control = control_resamples(save_pred = TRUE, save_workflow = TRUE))
 xgb_res <- fit_resamples(xgb_workflow, resamples = df_folds, control = control_resamples(save_pred = TRUE, save_workflow = TRUE))
 lasso_res <- fit_resamples(lasso_workflow, resamples = df_folds, control = control_resamples(save_pred = TRUE, save_workflow = TRUE))
 lasso_PCA_res <- fit_resamples(lasso_PCA_workflow, resamples = df_folds, control = control_resamples(save_pred = TRUE, save_workflow = TRUE))
-SVM_PCA_res <- fit_resamples(SVM_PCA_workflow, resamples = df_folds, control = control_resamples(save_pred = TRUE, save_workflow = TRUE))
+SVM_res <- fit_resamples(SVM_workflow, resamples = df_folds, control = control_resamples(save_pred = TRUE, save_workflow = TRUE))
 
 # Create a model stack
 model_stack_5 <- stacks() %>%
@@ -470,32 +471,16 @@ model_stack_5 <- stacks() %>%
   add_candidates(xgb_res) %>% 
   add_candidates(lasso_res) %>% 
   add_candidates(lasso_PCA_res) %>%  
-  add_candidates(SVM_PCA_res) %>%  
+  add_candidates(SVM_res) %>%  
   blend_predictions()
-
-# ensemble_object_5 = model_stack_4 %>% fit_members()
-# ensemble_5_bundle = ensemble_object_5 %>% bundle()
-# save(ensemble_5_bundle, file = "RF_XG_Lasso_LassoPCA_SvmPCA_predict.RData")
 ```
-<<<<<<< HEAD
 
-
-=======
-r(
-  function(temp_file, new_data) {
-    library(bundle)
-    library(workflows)
-    library(tidymodels)
-    model_bundle <- readRDS(file = temp_file)
-    model_object <- unbundle(model_bundle)
-    predict(model_object, new_data)
-  },
-  args = list(
-    temp_file = temp_file,
-    new_data = sample_test
-  )
-)
+```{r}
+# ensemble_5_bundle_2 = model_stack_5 %>% bundle()
+# save(ensemble_object_5_2, file = "RF_XG_Lasso_LassoPCA_Svm_predict.RData")
 ```
->>>>>>> Stashed changes
-=======
->>>>>>> bc0a88caa0133f707ef8e9e050bab4b5fb920fed
+
+
+```{r}
+
+```
