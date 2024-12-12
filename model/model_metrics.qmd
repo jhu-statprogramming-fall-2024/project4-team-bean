@@ -45,7 +45,7 @@ tree_fit = fit(tree_workflow, bean_training)
 
 tree_fit %>% 
   extract_fit_engine() %>% 
-  rpart.plot()
+  rpart.plot(type = 1, extra = 108, tweak = 1.55, box.palette = "YlGnBl", roundint = FALSE)
 
 tree_accuracy = bean_testing %>% 
   select(class) %>% 
@@ -416,9 +416,59 @@ formattable(heat_map_table, align =c("c","c","c","c", "c", "c", "c", "r"), list(
 ## Combo AUC Curves
 
 ```{r}
-model_auc %>% 
-  filter(class == "barbunya") %>% 
-  roc_curve(class, .pred_barbunya_tree) %>%
-  autoplot()
+library(ggplot2)
+seker_auc_tree = model_auc %>% 
+  mutate(
+    class = ifelse(class == "seker", "seker", "other"), 
+    class = as.factor(class)
+  ) %>%
+  roc_curve(class, .pred_seker_tree, event_level = "second") %>%
+  ggplot(aes(x = 1 - specificity, y = sensitivity)) +
+  geom_path() +
+  geom_abline(lty = 3) +
+  coord_equal()
+
+roc_seker_tree = model_auc %>% 
+  mutate(
+    class = ifelse(class == "seker", "seker", "other"), 
+    class = as.factor(class)
+  ) %>%
+  roc_curve(class, .pred_seker_tree, event_level = "second")
+roc_seker_lasso = model_auc %>% 
+  mutate(
+    class = ifelse(class == "seker", "seker", "other"), 
+    class = as.factor(class)
+  ) %>%
+  roc_curve(class, .pred_seker_lasso, event_level = "second")
+roc_seker_lasso_pca = model_auc %>% 
+  mutate(
+    class = ifelse(class == "seker", "seker", "other"), 
+    class = as.factor(class)
+  ) %>%
+  roc_curve(class, .pred_seker_lasso_pca, event_level = "second")
+roc_seker_svm = model_auc %>% 
+  mutate(
+    class = ifelse(class == "seker", "seker", "other"), 
+    class = as.factor(class)
+  ) %>%
+  roc_curve(class, .pred_seker_svm, event_level = "second")
+roc_seker_svm_pca = model_auc %>% 
+  mutate(
+    class = ifelse(class == "seker", "seker", "other"), 
+    class = as.factor(class)
+  ) %>%
+  roc_curve(class, .pred_seker_svm_pca, event_level = "second")
+roc_seker_rand_forest = model_auc %>% 
+  mutate(
+    class = ifelse(class == "seker", "seker", "other"), 
+    class = as.factor(class)
+  ) %>%
+  roc_curve(class, .pred_seker_rand_forest, event_level = "second")
+roc_seker_xgboost = model_auc %>% 
+  mutate(
+    class = ifelse(class == "seker", "seker", "other"), 
+    class = as.factor(class)
+  ) %>%
+  roc_curve(class, .pred_seker_xgboost, event_level = "second")
 
 ```
