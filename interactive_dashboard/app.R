@@ -141,19 +141,11 @@ ui <- fluidPage(theme = shinytheme("paper"),
              tabPanel("About", 
                       
                       mainPanel(
-                        "
-This interactive dashboard offers users a chance to explore the behaviour of different machine learning models trained on the dry bean dataset, a popular dataset for machine learning model benchmarking and testing. The dataset can be accessed on the UCI machine learning repository [1].
-
-More details on bean classes, and the creation of the dataset, including how the features in the dataset were extracted from photographs of beans using machine imaging techniques, can be found in the paper [2].
-
-[1] https://www.archive.ics.uci.edu/dataset/602/dry+bean+dataset, last accessed 8 December 2024.
-
-[2] Koklu, Murat, and Ilker Ali Ozkan. 'Multiclass classification of dry beans using computer vision and machine learning techniques.' Computers and Electronics in Agriculture 174 (2020): 105507."
-                      )
+                        includeHTML("about.html")
+                      )),
                       
-             ),
              
-             tabPanel("Explore dataset", 
+             tabPanel("Explore dataset and model behaviour", 
                       
                       sidebarLayout(
                         
@@ -290,7 +282,7 @@ More details on bean classes, and the creation of the dataset, including how the
                                  round = -4)),
                         
                         mainPanel(
-                          h1(strong("Data visualisation"), style = "font-size:30px;"),
+                          h1(strong("Data visualisation"), style = "font-size:20px;"),
                           strong(textOutput("plot_title")),
                           "Click on the scatter plot or histograms to set the feature values!",
                           fluidRow(
@@ -302,19 +294,41 @@ More details on bean classes, and the creation of the dataset, including how the
                             column(6, plotOutput(outputId = "histogram_y", width  = "350px",height = "350px", click = "histy_click")),
                             column(6, plotOutput(outputId = "scatter_plot", width  = "350px",height = "350px", click = "plot_click"))
                             
-                          )
+                          ),
+                          headerPanel(""),
+                          "Change the x variable and the y variable using the drop-down menus on the left hand panel to explore the pairwise relationships between features!",
+                          h1(strong("Machine learning model predictions"), style = "font-size:20px;"),
+                          "The below table shows the agreement and disagreement between different models' predictions, for a bean with variable values as selected by the user.",
                           
+                          plotOutput("model_prediction"))
                         )
-                      )
-                     ), 
+                      ), 
 
 
-            tabPanel("Explore model predictions",
-                    
-                     plotOutput("model_prediction")
-                     )
+            tabPanel("Predict for multiple beans",
+                "This page allows a user to upload a file containing covariate values for multiple beans, and to download the dataset containing the model predictions.",
+                "NB: the file can be at most 5 MB.",
+                fileInput("upload", strong("Upload a file containing bean values"),buttonLabel = "Upload...", multiple = TRUE, accept = c(".csv", ".tsv")),
+                strong("Select which machine learning models you want to apply to this dataset to predict bean class:"),
+                checkboxInput("RF_checkbox", "Random Forest", FALSE),
+                checkboxInput("Lasso_checkbox", "Lasso Regression", FALSE),
+                checkboxInput("Lasso_PCA_checkbox","Lasso on principle components",  FALSE),
+                checkboxInput("XGBoost_checkbox", "XGBoost", FALSE),
+                checkboxInput("SVM_checkbox", "Support Vector Machine", FALSE),
+                checkboxInput("ensemble_checkbox", "Ensemble using all models", FALSE),
+                
+                radioButtons("render_head_table", "Render first ten elements of dataframe and classifications?",
+                             c("Render" = "y",
+                               "Hide" = "n"),
+                             selected = "n"),
+                
+                tableOutput("head"), 
+                strong("Download predictions:"),
+                downloadButton("download", "Download .csv")
 
-))
+)))
+
+
 
 # Define Shiny server logic
 server <- function(input, output, session){
@@ -356,6 +370,26 @@ server <- function(input, output, session){
                  input$shape_factor_2,
                  input$shape_factor_3,
                  input$shape_factor_4))
+    
+  })
+  
+
+  checkboxValues <- reactive({
+    
+    data.frame(
+      "Name" = c("Random Forest",
+                 "Lasso Regression",
+                 "XGBoost",
+                 "Lasso on principle components",
+                 "Support Vector Machine",
+                 "Ensemble prediction using all models"),
+      
+      "Value" = c(input$RF_checkbox,
+                  input$Lasso_checkbox,
+                  input$Lasso_PCA_checkbox,
+                  input$XGBoost_checkbox,
+                  input$SVM_checkbox,
+                  input$ensemble_checkbox))
     
   })
   
@@ -533,7 +567,6 @@ server <- function(input, output, session){
     
   })
   
-  
   # Update slider input based on plot click
 
   observeEvent(input$plot_click$x, {
@@ -563,6 +596,56 @@ server <- function(input, output, session){
     updateSliderInput(session, input$data_plot.y, value = input$histy_click$y)
     
   })
+  
+  # get data 
+  
+  data <- reactive({
+    req(input$upload)
+    
+    ext <- tools::file_ext(input$upload$name)
+    
+    switch(ext,
+           csv = vroom::vroom(input$upload$datapath, delim = ","),
+           tsv = vroom::vroom(input$upload$datapath, delim = "\t"),
+           validate("Invalid file; Please upload a .csv or .tsv file")
+    )
+    
+  })
+  
+  data_predicted <- reactive({
+    
+    models_pred_index <- checkboxValues()
+    
+    data_predicted <- data()
+    
+    for (model in models_pred_index$Name[which(models_pred_index$Value == T)]){
+      data_predicted[,model] <- as.character(predict(models[[model]], data_predicted)[[1]])
+    }
+    
+    data_predicted
+    
+  })
+  
+  
+  output$head <- renderTable({
+    
+    if (input$render_head_table == "y"){
+      
+      head(data_predicted(), 10)
+    }
+    
+  })
+  
+  output$download <- downloadHandler(
+    
+    filename = function() {
+      paste0(input$dataset, "predictions.csv")
+    },
+    
+    content = function(file) {
+      write.csv(data(), file)
+    }
+  )
   
 }
 
