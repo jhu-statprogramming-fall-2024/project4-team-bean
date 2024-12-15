@@ -42,7 +42,8 @@ model_names <- c("Random Forest" = "RF",
                  "XGBoost" = "XG",
                  "Lasso on principle components" = "Lasso_PCA",
                  "Support Vector Machine" = "SVM",
-                 "Ensemble prediction using all models" = "RF_XG_Lasso_LassoPCA_SVM")
+                 "Ensemble prediction using all models" = "RF_XG_Lasso_LassoPCA_Svm")
+
 
 models <- list()
 
@@ -53,7 +54,7 @@ for (model in model_names){
   # switch names as needed (there are inconsistencies between file names and bundle names)
   model <- ifelse(model == "RF", "rf",
                   ifelse(model == "Lasso","lasso", 
-                         ifelse(model == "RF_XG_Lasso_LassoPCA_SVM", "ensemble_object_5_2", 
+                         ifelse(model == "RF_XG_Lasso_LassoPCA_Svm", "ensemble_object_5_2", 
                                 ifelse(model == "SVM", "svm", 
                                        ifelse(model == "XG", "xg", 
                                               ifelse(model == "Lasso_PCA", "lasso_PCA", model))))))
@@ -70,7 +71,7 @@ for (model in model_names){
   # switch names back as needed (there are inconsistencies between file names and bundle names)
   model <- ifelse(model == "rf", "RF", 
                   ifelse(model == "lasso","Lasso", 
-                         ifelse(model == "ensemble_object_5_2","RF_XG_Lasso_LassoPCA_SVM", 
+                         ifelse(model == "ensemble_object_5_2","RF_XG_Lasso_LassoPCA_Svm", 
                                 ifelse(model == "svm", "SVM", 
                                        ifelse(model == "xg", "XG", 
                                               ifelse(model == "lasso_PCA", "Lasso_PCA", model))))))
