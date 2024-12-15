@@ -13,6 +13,7 @@ library(cowplot)
 library(xgboost)
 library(kernlab)
 library(grid)
+library(shinythemes)
 
 # Define utility function for application
 get_var_longname <- function(var){
@@ -35,19 +36,15 @@ get_var_longname <- function(var){
          "shape_factor_4" = "Shape Factor 4")}
 
 
-# Read in machine learning models and save in list
+# Read in machine learning models and save in list 
 model_names <- c("Random Forest" = "RF",
                  "Lasso Regression" = "Lasso",
                  "XGBoost" = "XG",
                  "Lasso on principle components" = "Lasso_PCA",
-                 "Support Vector Machine on principle components" = "SVM_PCA",
-                 "Ensemble prediction using all models" = "RF_XG_Lasso_LassoPCA_SvmPCA")
+                 "Support Vector Machine" = "SVM",
+                 "Ensemble prediction using all models" = "RF_XG_Lasso_LassoPCA_SVM")
 
 models <- list()
-
-model <- "Lasso_PCA"
-load(paste0(model, "_predict.RData"))
-
 
 for (model in model_names){
   
@@ -56,18 +53,25 @@ for (model in model_names){
   # switch names as needed (there are inconsistencies between file names and bundle names)
   model <- ifelse(model == "RF", "rf",
                   ifelse(model == "Lasso","lasso", 
-                         ifelse(model == "RF_XG_Lasso_LassoPCA_SvmPCA", "ensemble_5", 
-                                ifelse(model == "SVM_PCA", "svm_PCA", 
+                         ifelse(model == "RF_XG_Lasso_LassoPCA_SVM", "ensemble_object_5_2", 
+                                ifelse(model == "SVM", "svm", 
                                        ifelse(model == "XG", "xg", 
                                               ifelse(model == "Lasso_PCA", "lasso_PCA", model))))))
   
-  model_object <- unbundle(get(paste0(model, "_bundle")))
+  if (model != "ensemble_object_5_2") {
+    model_object <- unbundle(get(paste0(model, "_bundle")))
+  } else {
+    
+  }
+  
+  
+  ensemble_object_5_2 <-  
   
   # switch names back as needed (there are inconsistencies between file names and bundle names)
   model <- ifelse(model == "rf", "RF", 
                   ifelse(model == "lasso","Lasso", 
-                         ifelse(model == "ensemble_5","RF_XG_Lasso_LassoPCA_SvmPCA", 
-                                ifelse(model == "svm_PCA", "SVM_PCA", 
+                         ifelse(model == "ensemble_object_5_2","RF_XG_Lasso_LassoPCA_SVM", 
+                                ifelse(model == "svm", "SVM", 
                                        ifelse(model == "xg", "XG", 
                                               ifelse(model == "lasso_PCA", "Lasso_PCA", model))))))
   
@@ -89,7 +93,8 @@ beans_summary_stats <- cbind(data.frame("var" = rownames(beans_summary_stats)),
 
 rownames(beans_summary_stats) <- NULL
 
-bean_names <- unique(data$class)
+bean_names <- sort(unique(data$class))
+names(bean_names) <- c("Barbunya","Bombay","Cali","Dermason","Horoz","Seker","Sira")
   
 col_scale <- scale_color_manual(values = c("barbunya" = "#1B9E77",
                                           "bombay" =  "#D95F02",
@@ -97,7 +102,9 @@ col_scale <- scale_color_manual(values = c("barbunya" = "#1B9E77",
                                           "dermason" = "#E7298A",
                                           "horoz" = "#66A61E",
                                           "seker" = "#E6AB02",
-                                          "sira" = "#A6761D"))
+                                          "sira" = "#A6761D"),
+                                
+                                labels = names(bean_names))
 
 fill_scale <- scale_fill_manual(values = c("barbunya" = "#1B9E77",
                                             "bombay" =  "#D95F02",
@@ -105,7 +112,9 @@ fill_scale <- scale_fill_manual(values = c("barbunya" = "#1B9E77",
                                             "dermason" = "#E7298A",
                                             "horoz" = "#66A61E",
                                             "seker" = "#E6AB02",
-                                            "sira" = "#A6761D"))
+                                            "sira" = "#A6761D"),
+                                
+                                labels = names(bean_names))
 
 # Save summaries of features 
 vars <- beans_summary_stats$var
@@ -122,10 +131,10 @@ bean_testing <- testing(bean_split)
 ################################### APP ########################################
 
 # Define Shiny UI here
-ui <- fluidPage(
+ui <- fluidPage(theme = shinytheme("paper"),
   
   # App title 
-  titlePanel("Machine learning models for bean classification - TEAM BEAN"),
+  titlePanel("Machine learning models for bean classification"),
   
   navbarPage("",
              
@@ -283,26 +292,27 @@ More details on bean classes, and the creation of the dataset, including how the
                         mainPanel(
                           h1(strong("Data visualisation"), style = "font-size:30px;"),
                           strong(textOutput("plot_title")),
+                          "Click on the scatter plot or histograms to set the feature values!",
                           fluidRow(
-                            column(6, plotOutput(outputId = "beans_legend", width  = "400px",height = "400px")),
-                            column(6, plotOutput(outputId = "histogram_x", width  = "400px",height = "400px"))
+                            column(6, plotOutput(outputId = "beans_legend", width  = "350px",height = "350px")),
+                            column(6, plotOutput(outputId = "histogram_x", width  = "350px",height = "350px",click = "histx_click"))
                           ),
                           
                           fluidRow(
-                            column(6, plotOutput(outputId = "histogram_y", width  = "400px",height = "400px")),
-                            column(6, plotOutput(outputId = "scatter_plot", width  = "400px",height = "400px"))
+                            column(6, plotOutput(outputId = "histogram_y", width  = "350px",height = "350px", click = "histy_click")),
+                            column(6, plotOutput(outputId = "scatter_plot", width  = "350px",height = "350px", click = "plot_click"))
                             
-                          ),
-                            
-                            
-                          strong("Model agreement and disagreement..."),
-                          plotOutput("model_prediction")
+                          )
+                          
                         )
                       )
                      ), 
 
 
-            tabPanel("Upload dataset")
+            tabPanel("Explore model predictions",
+                    
+                     plotOutput("model_prediction")
+                     )
 
 ))
 
@@ -468,8 +478,12 @@ server <- function(input, output, session){
       geom_vline(xintercept = user_yval, colour = "red") +
       labs(title = paste0("Marginal distribution of ",get_var_longname(input$data_plot.x), ", by bean class"), 
            x = get_var_longname(input$data_plot.y),
-           y = "Count") +
-      coord_flip()
+           y = "Count", 
+           fill = "Bean class") +
+      coord_flip() +
+      theme(legend.text = element_text(size = 14), 
+            legend.title = element_text(size = 18))
+      
     
     a <- get_legend(p)
     
@@ -480,40 +494,79 @@ server <- function(input, output, session){
   # Plot model predictions as heatmap
   output$model_prediction <- renderPlot({
     
-    inputs <- sliderValues()
+    inputs <- sliderValues() 
     
     inputs <- inputs %>% pivot_wider(id_cols = NULL, names_from = Name, values_from = Value)
     
-    predictions <- c()
+    predictions <- c() 
     
     for (model in names(model_names)){
       
-      predictions <- c(predictions, as.character(predict(models[[input$model_type]], inputs)[[1]]))
+      predictions <- c(predictions, as.character(predict(models[[model]], inputs)[[1]]))
       
     }
     
     predictions_df <- data.frame("Model" = names(model_names),
-                                "Classification" = predictions)
+                                "Classification" = predictions) 
     
     all_predictions_df <- data.frame("Model" = rep(names(model_names), length(bean_names)),
                                  "Classification" = rep(bean_names, each = length(model_names)),
                                  "pred" = rep(NA, length(bean_names) * length(model_names)))
     
-    predictions_df$Classification <- factor(predictions_df$Classification, bean_names)
+    predictions_df$Classification <- factor(predictions_df$Classification, levels = bean_names)
     
-    ggplot(all_predictions_df, aes(x = Model, y = Classification)) +
-      geom_tile(linewidth=0.5, colour ="black", fill = "white") +
-      geom_tile(data = predictions_df, aes(fill = Classification), linewidth=0.5, colour ="black") +
+    ggplot(all_predictions_df, aes(y = Model, x = Classification)) + 
+      geom_tile(linewidth=0.5, colour ="black", fill = "white") + 
+      geom_tile(data = predictions_df, aes(fill = Classification), line_width=0.5, colour ="black") + 
       fill_scale + 
-      theme_classic() +
-      theme(legend.position = "none") +
+      theme_classic() + 
+      scale_x_discrete(labels = names(bean_names),position = "top") +
+      labs(title = "Bean class prediction by model") +
+      theme(legend.position = "none",
+            axis.ticks = element_blank(),
+            axis.text.y = element_text(size = 12),
+            axis.text.x = element_text(size = 12),
+            axis.title = element_blank(),
+            title = element_text(size = 14)) + 
+      
       theme(axis.line = element_blank())
+    
+  })
+  
+  
+  # Update slider input based on plot click
+
+  observeEvent(input$plot_click$x, {
+
+    inputs <- sliderValues()
+    updateSliderInput(session, input$data_plot.x, value = input$plot_click$x)
+    
+  })
+
+  observeEvent(input$plot_click$y, {
+    
+    inputs <- sliderValues()
+    updateSliderInput(session, input$data_plot.y, value = input$plot_click$y)
+    
+  })
+  
+  observeEvent(input$histx_click$x, {
+    
+    inputs <- sliderValues()
+    updateSliderInput(session, input$data_plot.x, value = input$histx_click$x)
+    
+  })
+  
+  observeEvent(input$histy_click$y, {
+    
+    inputs <- sliderValues()
+    updateSliderInput(session, input$data_plot.y, value = input$histy_click$y)
     
   })
   
 }
 
-# Create and launch the Shiny app
+# Create and launch the Shiny app 
 shinyApp(ui, server)
 
 
