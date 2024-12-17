@@ -644,7 +644,7 @@ server <- function(input, output, session){
     },
     
     content = function(file) {
-      write.csv(data(), file)
+      write.csv(data_predicted(), file)
     }
   )
   
@@ -652,6 +652,5 @@ server <- function(input, output, session){
 
 # Create and launch the Shiny app 
 shinyApp(ui, server)
-
 
 
