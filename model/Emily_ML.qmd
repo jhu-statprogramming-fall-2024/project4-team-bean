@@ -6,7 +6,7 @@ editor_options:
   chunk_output_type: console
 ---
 
-All necessary code for dashboard in this chunk
+## Code for dashboard in this chunk
 
 ```{r}
 library(readxl)
@@ -47,13 +47,12 @@ model_Lasso_PCA_object <- unbundle(lasso_PCA_bundle)
 load("SVM_PCA_predict.RData")
 model_SVM_PCA_object <- unbundle(svm_PCA_bundle)
 
-# UPDATED
-load("SVM_predict.RData") ### 
-model_SVM_object <- unbundle(svm_bundle) ###
+load("SVM_predict.RData") 
+model_SVM_object <- unbundle(svm_bundle)
 
-# Ensemble model (UPDATED)
-load("RF_XG_Lasso_LassoPCA_Svm_predict.RData") ###
-ensemble_object_5_2 <- unbundle(ensemble_object_5_2) ###
+# Ensemble model
+load("RF_XG_Lasso_LassoPCA_Svm_predict.RData")
+ensemble_object_5_2 <- unbundle(ensemble_object_5_2)
 
 set.seed(as.numeric(Sys.time()) %% 1e6)
 sample_test = sample_n(bean_testing, 5)
@@ -66,22 +65,9 @@ predict(model_SVM_object, sample_test)
 predict(ensemble_object_5_2, sample_test)
 ```
 
-Intermediate ensemble models
-
-```{r}
-load("RF_XG_predict.RData")
-model_ensemble_object <- unbundle(test)
-load("RF_XG_Lasso_predict.RData")
-model_ensemble_object_3 <- unbundle(model_ensemble_object)
-load("RF_XG_Lasso_LassoPCA_predict.RData")
-ensemble_object_4 <- unbundle(model_ensemble_object_4)
-
-predict(model_ensemble_object, sample_test)
-predict(model_ensemble_object_3, sample_test)
-predict(ensemble_object_4, sample_test)
-```
-
 ------------------------------------------------------------------------
+
+## General set-up for all model-building
 
 ```{r}
 library(readxl)
@@ -192,7 +178,7 @@ xgboost_res %>% select_best()
 # tree_depth = 2, learn_rate = 0.0869, loss_reduction = 0.0147
 ```
 
-## Single models: RF and XGBoost
+## Single model: RF
 
 ```{r}
 # specify recipe / apply to training data
@@ -207,9 +193,14 @@ final_rf_wf <- workflow() %>%
 rf_mod = final_rf_wf %>%  
   fit(bean_training)
 
+# code to export to RData file for future predictions
 # rf_bundle <- bundle(rf_mod)
 # save(rf_bundle, file = "RF_predict.RData")
+```
 
+## Single model: XGBoost
+
+```{r}
 final_xgb_wf <- workflow() %>%
   add_recipe(bean_rec) %>%
   add_model(final_xgb_model)
@@ -219,99 +210,6 @@ xg_mod = final_xgb_wf %>%
 
 # xg_bundle <- bundle(xg_mod)
 # save(xg_bundle, file = "XG_predict.RData")
-```
-
-## Ensemble Model for Random Forest and XGBoost (using only best models due to computational constraints)
-
-```{r}
-cl <- makeCluster(detectCores() - 1)
-registerDoParallel(cl)
-
-final_rf_mod <- rand_forest(mtry = 7,
-                         trees = 500,
-                         min_n = 26) %>%
-  set_mode("classification") %>%
-  set_engine("ranger") 
-
-final_xgb_model <- boost_tree(tree_depth = 2,
-                         trees = 500,
-                         learn_rate = 0.0869,
-                      loss_reduction = 0.0147) %>%
-  set_mode("classification")%>%
-  set_engine("xgboost")
-
-untrained_recipe <- recipe(class ~., data = bean_training) %>% 
-  step_normalize(all_predictors())
-
-# Define the resampling strategy
-set.seed(123)
-df_folds <- vfold_cv(bean_training, v = 5)
-
-# Define the workflow for each model
-rf_workflow <- workflow() %>%
-  add_model(final_rf_mod) %>%
-  add_recipe(untrained_recipe)
-
-xgb_workflow <- workflow() %>%
-  add_model(final_xgb_model) %>%
-  add_recipe(untrained_recipe)
-
-# Fit the models using resampling with control settings for stacking
-rf_res <- fit_resamples(rf_workflow, resamples = df_folds, control = control_resamples(save_pred = TRUE, save_workflow = TRUE))
-xgb_res <- fit_resamples(xgb_workflow, resamples = df_folds, control = control_resamples(save_pred = TRUE, save_workflow = TRUE))
-
-# Create a model stack
-model_stack <- stacks() %>%
-  add_candidates(rf_res) %>%
-  add_candidates(xgb_res) %>% 
-  blend_predictions() 
-
-```
-
-## Single RF and XGBoost models
-
-```{r}
-bean_split = initial_split(beans, prop = 0.8, strata = class)
-bean_train <- training(bean_split)
-bean_test <- testing(bean_split)
-```
-
-```{r}
-## data pre-processing
-
-# specify recipe / apply to training data
-bean_rec <- training(bean_split) %>%
-  recipe(class ~.) %>% 
-  step_normalize(all_predictors())
-
-final_rf_wf <- workflow() %>%
-  add_recipe(bean_rec) %>%
-  add_model(final_rf_mod)
-
-rf_mod = final_rf_wf %>%  
-  fit(bean_training)
-
-final_xgb_wf <- workflow() %>%
-  add_recipe(bean_rec) %>%
-  add_model(final_xgb_model)
-
-xg_mod = final_xgb_wf %>%  
-  fit(bean_training)
-```
-
-## Code that exported models to RData for future predictions
-
-```{r, eval = FALSE}
-# rf_bundle <- bundle(rf_mod)
-# save(rf_bundle, file = "RF_predict.RData")
-
-# xg_bundle <- bundle(xg_mod)
-# save(xg_bundle, file = "XG_predict.RData")
-
-# test = model_stack %>% butcher() %>% bundle()
-
-# test = model_stack %>% fit_members() %>% butcher() %>% bundle()
-# save(test, file = "RF_XG_predict.RData")
 ```
 
 ## Prepping Bella's final models for collective ensemble
@@ -473,14 +371,7 @@ model_stack_5 <- stacks() %>%
   add_candidates(lasso_PCA_res) %>%  
   add_candidates(SVM_res) %>%  
   blend_predictions()
-```
 
-```{r}
 # ensemble_5_bundle_2 = model_stack_5 %>% bundle()
 # save(ensemble_object_5_2, file = "RF_XG_Lasso_LassoPCA_Svm_predict.RData")
-```
-
-
-```{r}
-
 ```
